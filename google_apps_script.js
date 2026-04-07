@@ -111,6 +111,26 @@ function doGet(e) {
       }
     }
 
+    else if (action === "updateWorkDone") {
+      var sheet = ss.getSheetByName("StatusUpdates");
+      if (sheet) {
+        var data = sheet.getDataRange().getValues();
+        var targetEmpId = e.parameter.empId || "";
+        var targetDate = e.parameter.date || "";
+        for (var i = data.length - 1; i >= 1; i--) {
+          if (String(data[i][1]) === targetEmpId && String(data[i][8]) === targetDate) {
+            sheet.getRange(i + 1, 10).setValue(e.parameter.workDone || "");
+            sheet.getRange(i + 1, 11).setValue(e.parameter.completionPct || "0");
+            sheet.getRange(i + 1, 12).setValue(e.parameter.workRemarks || "");
+            sheet.getRange(i + 1, 13).setValue(e.parameter.nextVisitRequired || "No");
+            sheet.getRange(i + 1, 14).setValue(e.parameter.nextVisitDate || "");
+            break;
+          }
+        }
+      }
+      result = { status: "success", message: "Work done updated." };
+    }
+
     else {
       result = { status: "success", message: "Fluxgen Operations API running." };
     }

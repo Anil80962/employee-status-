@@ -922,7 +922,17 @@
 
             showLoading("Saving work done...");
             try {
-                await formPost(data);
+                // Use URL params for updateWorkDone to survive Google redirect
+                const params = Object.keys(data).map(k => encodeURIComponent(k) + "=" + encodeURIComponent(data[k])).join("&");
+                await new Promise((resolve, reject) => {
+                    const img = new Image();
+                    img.onload = resolve;
+                    img.onerror = resolve; // resolve anyway, Google returns redirect
+                    img.src = SCRIPT_URL + "?" + params;
+                    setTimeout(resolve, 3000);
+                });
+                // Also try fetch as backup
+                try { await fetch(SCRIPT_URL + "?" + params, { mode: "no-cors" }); } catch(e) {}
 
                 // Save to localStorage
                 const store = getWorkDoneStore();
