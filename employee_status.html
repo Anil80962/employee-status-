@@ -1115,7 +1115,7 @@
                 const d = new Date(mon);
                 d.setDate(mon.getDate() + i);
                 dates.push(d.toISOString().split("T")[0]);
-                dateLabels.push(dayNames[i] + "<br>" + d.getDate() + "/" + (d.getMonth()+1));
+                dateLabels.push(dayNames[i] + "<br>" + d.getDate() + "/" + (d.getMonth()+1) + "/" + d.getFullYear());
             }
 
             const head = document.getElementById("weeklyHead");
