@@ -1278,6 +1278,14 @@
         function processEfficiency(allData, from, to) {
             const total = employees.length;
 
+            // Deduplicate: keep only latest entry per employee per date
+            const dedupMap = {};
+            allData.forEach(r => {
+                const key = (r.empId || r.empName) + "_" + r.date;
+                dedupMap[key] = r;
+            });
+            allData = Object.values(dedupMap);
+
             // Collect all holiday dates (any employee marked Holiday on a date = holiday for all)
             const holidayDates = new Set();
             allData.forEach(r => {
@@ -1353,10 +1361,10 @@
 
             // Stats
             const maxEntries = total * totalWorkingDays;
-            const deployRate = maxEntries > 0 ? Math.round((totalDeployed / maxEntries) * 100) : 0;
-            const onSiteRate = maxEntries > 0 ? Math.round((totalOnSite / maxEntries) * 100) : 0;
-            const leaveRate = maxEntries > 0 ? Math.round((totalOnLeave / maxEntries) * 100) : 0;
-            const utilRate = maxEntries > 0 ? Math.round((totalWorking / maxEntries) * 100) : 0;
+            const deployRate = maxEntries > 0 ? Math.min(100, Math.round((totalDeployed / maxEntries) * 100)) : 0;
+            const onSiteRate = maxEntries > 0 ? Math.min(100, Math.round((totalOnSite / maxEntries) * 100)) : 0;
+            const leaveRate = maxEntries > 0 ? Math.min(100, Math.round((totalOnLeave / maxEntries) * 100)) : 0;
+            const utilRate = maxEntries > 0 ? Math.min(100, Math.round((totalWorking / maxEntries) * 100)) : 0;
 
             document.getElementById("effDeployed").textContent = deployRate + "%";
             document.getElementById("effOnSite").textContent = onSiteRate + "%";
