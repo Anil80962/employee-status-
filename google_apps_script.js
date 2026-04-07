@@ -18,6 +18,28 @@
 //    Execute as: Me | Who has access: Anyone
 // =====================================================
 
+function formatDate(val) {
+  if (!val) return "";
+  if (val instanceof Date) {
+    var y = val.getFullYear();
+    var m = String(val.getMonth() + 1).padStart(2, "0");
+    var d = String(val.getDate()).padStart(2, "0");
+    return y + "-" + m + "-" + d;
+  }
+  var s = String(val);
+  // If already in YYYY-MM-DD format
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // Try to parse date string
+  var parsed = new Date(s);
+  if (!isNaN(parsed.getTime())) {
+    var y = parsed.getFullYear();
+    var m = String(parsed.getMonth() + 1).padStart(2, "0");
+    var d = String(parsed.getDate()).padStart(2, "0");
+    return y + "-" + m + "-" + d;
+  }
+  return s;
+}
+
 function doGet(e) {
   var action = e.parameter.action || "";
   var callback = e.parameter.callback || "";
@@ -51,7 +73,7 @@ function doGet(e) {
         var data = sheet.getDataRange().getValues();
         var rows = [];
         for (var i = 1; i < data.length; i++) {
-          var rowDate = String(data[i][8]);
+          var rowDate = formatDate(data[i][8]);
           if (dateFilter === "" || rowDate === dateFilter) {
             rows.push({
               empId: String(data[i][1]),
@@ -85,7 +107,7 @@ function doGet(e) {
         var data = sheet.getDataRange().getValues();
         var rows = [];
         for (var i = 1; i < data.length; i++) {
-          var rowDate = String(data[i][8]);
+          var rowDate = formatDate(data[i][8]);
           var rowEmpId = String(data[i][1]);
           if (rowDate >= fromDate && rowDate <= toDate) {
             if (empId === "ALL" || empId === "" || rowEmpId === empId) {
