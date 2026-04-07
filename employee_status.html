@@ -1212,7 +1212,14 @@
 
             try {
                 const result = await sheetFetch("action=getStatus&date=" + encodeURIComponent(date));
-                const data = mergeWorkDoneData(result.data || []);
+                // Deduplicate: keep latest entry per employee per date
+                const rawData = result.data || [];
+                const dedupMap = {};
+                rawData.forEach(r => {
+                    const key = (r.empId || r.empName) + "_" + r.date;
+                    dedupMap[key] = r;
+                });
+                const data = mergeWorkDoneData(Object.values(dedupMap));
                 window._overviewData = data;
                 renderOverviewTable(data);
 
