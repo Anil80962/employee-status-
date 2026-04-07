@@ -183,22 +183,40 @@ function doPost(e) {
         sheet = ss.insertSheet("StatusUpdates");
         sheet.appendRow(["Timestamp", "EmpID", "EmpName", "Role", "SiteName", "WorkType", "ScopeOfWork", "Status", "Date", "WorkDone", "CompletionPct", "WorkRemarks", "NextVisitRequired", "NextVisitDate"]);
       }
-      sheet.appendRow([
-        new Date(),
-        e.parameter.empId || "",
-        e.parameter.empName || "",
-        e.parameter.role || "",
-        e.parameter.siteName || "",
-        e.parameter.workType || "",
-        e.parameter.scopeOfWork || "",
-        e.parameter.status || "",
-        e.parameter.date || "",
-        "",
-        "0",
-        "",
-        "No",
-        ""
-      ]);
+      var targetEmpId = e.parameter.empId || "";
+      var targetDate = e.parameter.date || "";
+      var data = sheet.getDataRange().getValues();
+      var existingRow = -1;
+      for (var i = data.length - 1; i >= 1; i--) {
+        if (String(data[i][1]) === targetEmpId && formatDate(data[i][8]) === targetDate) {
+          existingRow = i + 1;
+          break;
+        }
+      }
+      if (existingRow > 0) {
+        sheet.getRange(existingRow, 1).setValue(new Date());
+        sheet.getRange(existingRow, 5).setValue(e.parameter.siteName || "");
+        sheet.getRange(existingRow, 6).setValue(e.parameter.workType || "");
+        sheet.getRange(existingRow, 7).setValue(e.parameter.scopeOfWork || "");
+        sheet.getRange(existingRow, 8).setValue(e.parameter.status || "");
+      } else {
+        sheet.appendRow([
+          new Date(),
+          targetEmpId,
+          e.parameter.empName || "",
+          e.parameter.role || "",
+          e.parameter.siteName || "",
+          e.parameter.workType || "",
+          e.parameter.scopeOfWork || "",
+          e.parameter.status || "",
+          targetDate,
+          "",
+          "0",
+          "",
+          "No",
+          ""
+        ]);
+      }
     }
 
     else if (action === "addEmployee") {
