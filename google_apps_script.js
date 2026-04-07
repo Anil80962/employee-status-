@@ -1,5 +1,5 @@
 // =====================================================
-// Google Apps Script — FULL SYNC VERSION
+// Google Apps Script - FULL SYNC VERSION
 // =====================================================
 // SETUP:
 // 1. Your Google Sheet needs 2 sheet tabs:
@@ -14,7 +14,7 @@
 //    E1: SiteName | F1: WorkType | G1: ScopeOfWork | H1: Status | I1: Date
 //    J1: WorkDone | K1: CompletionPct | L1: WorkRemarks | M1: NextVisitRequired | N1: NextVisitDate
 //
-// 4. Extensions → Apps Script → paste this → Deploy as Web App
+// 4. Extensions -> Apps Script -> paste this -> Deploy as Web App
 //    Execute as: Me | Who has access: Anyone
 // =====================================================
 
