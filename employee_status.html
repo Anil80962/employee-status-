@@ -1569,7 +1569,10 @@
             try {
                 const result = await sheetFetch("action=getStatusRange&empId=" + encodeURIComponent(empId) + "&from=" + encodeURIComponent(from) + "&to=" + encodeURIComponent(to));
                 hideLoading();
-                reportData = result.data || [];
+                const raw = result.data || [];
+                const dm = {};
+                raw.forEach(r => { dm[(r.empId||r.empName) + "_" + r.date] = r; });
+                reportData = Object.values(dm);
                 return reportData;
             } catch (err) {
                 hideLoading();
@@ -1675,7 +1678,10 @@
             try {
                 const result = await sheetFetch("action=getStatusRange&empId=ALL&from=" + encodeURIComponent(from) + "&to=" + encodeURIComponent(to));
                 hideLoading();
-                siteReportData = (result.data || []).filter(r => r.siteName && r.siteName.toLowerCase() === siteName.toLowerCase());
+                const raw = (result.data || []).filter(r => r.siteName && r.siteName.toLowerCase() === siteName.toLowerCase());
+                const dm = {};
+                raw.forEach(r => { dm[(r.empId||r.empName) + "_" + r.date] = r; });
+                siteReportData = Object.values(dm);
                 return siteReportData;
             } catch (err) {
                 hideLoading();
@@ -1737,7 +1743,10 @@
             try {
                 const result = await sheetFetch("action=getStatusRange&empId=ALL&from=" + encodeURIComponent(from) + "&to=" + encodeURIComponent(to));
                 hideLoading();
-                workTypeReportData = (result.data || []).filter(r => r.workType === workType);
+                const raw = (result.data || []).filter(r => r.workType === workType);
+                const dm = {};
+                raw.forEach(r => { dm[(r.empId||r.empName) + "_" + r.date] = r; });
+                workTypeReportData = Object.values(dm);
                 return workTypeReportData;
             } catch (err) {
                 hideLoading();
