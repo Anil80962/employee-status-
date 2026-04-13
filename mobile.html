@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FG Status">
+<meta name="theme-color" content="#1a3a5c">
+<link rel="manifest" href="/manifest.json">
+<title>Fluxgen Status</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  :root{
+    --primary:#1a3a5c;--primary2:#2c5364;--green:#27ae60;--red:#e74c3c;
+    --purple:#8e44ad;--orange:#e67e22;--blue:#2980b9;
+    --bg:#f4f6f9;--card:#fff;--text:#1a1a2e;--sub:#888;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bot: env(safe-area-inset-bottom, 0px);
+  }
+  html,body{height:100%;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text);overflow:hidden;}
+
+  /* ── VIEWS ── */
+  .view{display:none;flex-direction:column;height:100vh;height:100dvh;}
+  .view.active{display:flex;}
+
+  /* ── LOGIN ── */
+  #loginView{background:linear-gradient(160deg,var(--primary),var(--primary2));align-items:center;justify-content:center;padding:24px;}
+  .login-logo{width:80px;height:80px;border-radius:16px;background:#fff;padding:10px;margin-bottom:20px;box-shadow:0 8px 32px rgba(0,0,0,0.3);}
+  .login-title{font-size:26px;font-weight:800;color:#fff;margin-bottom:4px;}
+  .login-sub{font-size:14px;color:rgba(255,255,255,0.7);margin-bottom:40px;}
+  .login-card{background:#fff;border-radius:24px;padding:28px;width:100%;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,0.3);}
+  .login-card h3{font-size:18px;font-weight:700;color:var(--text);margin-bottom:20px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:12px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+  .field input{width:100%;padding:14px 16px;border:2px solid #e0e0e0;border-radius:12px;font-size:16px;outline:none;font-family:inherit;color:var(--text);background:#fff;}
+  .field input:focus{border-color:var(--primary2);}
+  .login-err{color:var(--red);font-size:13px;margin-bottom:12px;display:none;}
+  .btn-primary{width:100%;padding:16px;background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:.3px;}
+  .btn-primary:active{opacity:.85;}
+
+  /* ── TOPBAR ── */
+  .topbar{background:linear-gradient(135deg,var(--primary),var(--primary2));padding:calc(var(--safe-top) + 14px) 20px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+  .topbar-left{display:flex;align-items:center;gap:10px;}
+  .topbar-logo{width:32px;height:32px;border-radius:8px;background:#fff;padding:4px;}
+  .topbar-title{font-size:17px;font-weight:700;color:#fff;}
+  .topbar-sub{font-size:11px;color:rgba(255,255,255,.65);}
+  .topbar-right{display:flex;align-items:center;gap:8px;}
+  .avatar-btn{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.2);color:#fff;font-size:13px;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+
+  /* ── SCROLL CONTENT ── */
+  .scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px calc(80px + var(--safe-bot));}
+
+  /* ── BOTTOM NAV ── */
+  .bottomnav{background:#fff;border-top:1px solid #e8e8e8;display:flex;flex-shrink:0;padding-bottom:var(--safe-bot);box-shadow:0 -4px 20px rgba(0,0,0,.06);}
+  .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 0;cursor:pointer;border:none;background:transparent;color:var(--sub);font-size:10px;font-weight:600;gap:4px;transition:color .2s;}
+  .nav-item.active{color:var(--primary2);}
+  .nav-icon{font-size:22px;line-height:1;}
+  .nav-item.active .nav-icon{transform:scale(1.1);}
+
+  /* ── CARDS ── */
+  .card{background:var(--card);border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 2px 12px rgba(0,0,0,.06);}
+  .card-title{font-size:13px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;}
+
+  /* ── STATUS BADGE ── */
+  .status-badge{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;}
+  .badge-onsite{background:#fde8e8;color:#c0392b;}
+  .badge-office{background:#e8f5e9;color:#1e8449;}
+  .badge-wfh   {background:#e8f5e9;color:#1e8449;}
+  .badge-leave {background:#f3e5f5;color:#6c3483;}
+  .badge-holiday{background:#f3e5f5;color:#6c3483;}
+  .badge-none  {background:#f5f5f5;color:#999;}
+
+  /* ── MY STATUS CARD ── */
+  .my-status-hero{background:linear-gradient(135deg,var(--primary),var(--primary2));border-radius:20px;padding:20px;margin-bottom:16px;color:#fff;}
+  .msh-date{font-size:12px;opacity:.75;margin-bottom:4px;}
+  .msh-greeting{font-size:22px;font-weight:800;margin-bottom:16px;}
+  .msh-status-row{display:flex;align-items:center;justify-content:space-between;}
+  .msh-status{font-size:14px;opacity:.9;}
+  .msh-site{font-size:13px;opacity:.7;margin-top:2px;}
+  .msh-update-btn{background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);color:#fff;padding:8px 16px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;}
+  .msh-update-btn:active{background:rgba(255,255,255,.3);}
+
+  /* ── STATUS PICKER ── */
+  .status-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+  .status-opt{border:2px solid #e0e0e0;border-radius:14px;padding:14px 10px;text-align:center;cursor:pointer;transition:all .15s;background:#fff;}
+  .status-opt .opt-icon{font-size:28px;margin-bottom:4px;}
+  .status-opt .opt-label{font-size:12px;font-weight:700;color:#555;}
+  .status-opt.selected{border-color:var(--primary2);background:#e8f0fe;}
+  .status-opt.selected .opt-label{color:var(--primary2);}
+
+  /* ── FORM FIELDS ── */
+  .form-section{display:none;animation:fadeIn .2s;}
+  .form-section.visible{display:block;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .field-label{font-size:13px;font-weight:700;color:#555;margin-bottom:6px;display:block;}
+  .field-input{width:100%;padding:13px 14px;border:2px solid #e0e0e0;border-radius:12px;font-size:15px;outline:none;background:#fff;font-family:inherit;color:var(--text);margin-bottom:12px;}
+  .field-input:focus{border-color:var(--primary2);}
+  .field-select{width:100%;padding:13px 14px;border:2px solid #e0e0e0;border-radius:12px;font-size:15px;outline:none;background:#fff;font-family:inherit;color:var(--text);margin-bottom:12px;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;}
+  .field-select:focus{border-color:var(--primary2);}
+  .field-textarea{width:100%;padding:13px 14px;border:2px solid #e0e0e0;border-radius:12px;font-size:15px;outline:none;background:#fff;font-family:inherit;color:var(--text);margin-bottom:12px;resize:none;min-height:80px;}
+  .field-textarea:focus{border-color:var(--primary2);}
+  .submit-btn{width:100%;padding:17px;background:linear-gradient(135deg,var(--green),#2ecc71);color:#fff;border:none;border-radius:14px;font-size:17px;font-weight:700;cursor:pointer;margin-top:8px;letter-spacing:.3px;}
+  .submit-btn:active{opacity:.85;}
+  .submit-btn:disabled{background:#ccc;cursor:not-allowed;}
+
+  /* ── TEAM LIST ── */
+  .group-header{font-size:13px;font-weight:700;margin:16px 0 8px;display:flex;align-items:center;gap:8px;}
+  .group-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .team-card{background:#fff;border-radius:14px;padding:14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,.05);}
+  .team-avatar{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .team-avatar.av-office{background:linear-gradient(135deg,#1e8449,#27ae60);}
+  .team-avatar.av-leave{background:linear-gradient(135deg,#6c3483,#8e44ad);}
+  .team-avatar.av-free{background:linear-gradient(135deg,#636e72,#b2bec3);}
+  .team-info{flex:1;min-width:0;}
+  .team-name{font-size:14px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .team-detail{font-size:12px;color:var(--sub);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+  /* ── LOADING ── */
+  .loader{display:flex;align-items:center;justify-content:center;padding:40px;color:var(--sub);gap:10px;font-size:14px;}
+  .spin{width:20px;height:20px;border:2px solid #ddd;border-top-color:var(--primary2);border-radius:50%;animation:spin .7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* ── TOAST ── */
+  .toast{position:fixed;bottom:calc(80px + var(--safe-bot) + 12px);left:50%;transform:translateX(-50%) translateY(20px);background:#333;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;opacity:0;transition:all .3s;z-index:9999;white-space:nowrap;pointer-events:none;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .toast.success{background:var(--green);}
+  .toast.error{background:var(--red);}
+
+  /* ── EMPTY STATE ── */
+  .empty{text-align:center;padding:40px 20px;color:var(--sub);}
+  .empty-icon{font-size:48px;margin-bottom:12px;}
+  .empty-text{font-size:14px;}
+
+  /* ── PROFILE SHEET ── */
+  .sheet-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:flex-end;}
+  .sheet-overlay.open{display:flex;}
+  .sheet{background:#fff;border-radius:24px 24px 0 0;padding:24px;padding-bottom:calc(24px + var(--safe-bot));width:100%;max-height:50vh;}
+  .sheet-handle{width:40px;height:4px;background:#ddd;border-radius:2px;margin:0 auto 20px;}
+  .sheet-name{font-size:18px;font-weight:800;color:var(--text);margin-bottom:4px;}
+  .sheet-role{font-size:13px;color:var(--sub);margin-bottom:20px;}
+  .sheet-btn{width:100%;padding:14px;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px;}
+  .sheet-btn.logout{background:#fde8e8;color:var(--red);}
+
+  /* ── DATE CHIP ── */
+  .date-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);border-radius:8px;padding:6px 12px;font-size:12px;color:#fff;margin-bottom:4px;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="view active" id="loginView">
+  <div style="text-align:center;">
+    <img src="/fluxgen-logo.png" class="login-logo" alt="Fluxgen" onerror="this.style.display='none'">
+    <div class="login-title">Fluxgen</div>
+    <div class="login-sub">Employee Status Portal</div>
+  </div>
+  <div class="login-card">
+    <h3>Sign In</h3>
+    <div id="loginErr" class="login-err">Incorrect username or password</div>
+    <div class="field">
+      <label>Username</label>
+      <input type="text" id="mUsername" autocomplete="username" autocapitalize="none">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="mPassword" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn-primary" onclick="doLogin()" id="loginBtn">Sign In</button>
+  </div>
+</div>
+
+<!-- HOME VIEW -->
+<div class="view" id="homeView">
+  <div class="topbar">
+    <div class="topbar-left">
+      <img src="/fluxgen-logo.png" class="topbar-logo" alt="" onerror="this.style.display='none'">
+      <div>
+        <div class="topbar-title">Fluxgen Status</div>
+        <div class="topbar-sub" id="topbarDate"></div>
+      </div>
+    </div>
+    <button class="avatar-btn" id="avatarBtn" onclick="openSheet()"></button>
+  </div>
+  <div class="scroll" id="homeScroll">
+    <!-- Hero status card -->
+    <div class="my-status-hero">
+      <div class="msh-date" id="heroDate"></div>
+      <div class="msh-greeting" id="heroGreeting">Good morning!</div>
+      <div class="msh-status-row">
+        <div>
+          <div class="msh-status" id="heroStatus">Status not updated</div>
+          <div class="msh-site" id="heroSite"></div>
+        </div>
+        <button class="msh-update-btn" onclick="goUpdate()">+ Update</button>
+      </div>
+    </div>
+
+    <!-- Quick actions -->
+    <div class="card">
+      <div class="card-title">Quick Actions</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <button onclick="goUpdate()" style="padding:16px;background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;border:none;border-radius:14px;font-size:13px;font-weight:700;cursor:pointer;">
+          <div style="font-size:26px;margin-bottom:4px;">📋</div>Update Status
+        </button>
+        <button onclick="switchView('teamView')" style="padding:16px;background:linear-gradient(135deg,#1e8449,#27ae60);color:#fff;border:none;border-radius:14px;font-size:13px;font-weight:700;cursor:pointer;">
+          <div style="font-size:26px;margin-bottom:4px;">👥</div>View Team
+        </button>
+      </div>
+    </div>
+
+    <!-- Today team summary -->
+    <div class="card">
+      <div class="card-title">Today's Team</div>
+      <div id="homeSummary"><div class="loader"><div class="spin"></div> Loading...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- UPDATE STATUS VIEW -->
+<div class="view" id="updateView">
+  <div class="topbar">
+    <div class="topbar-left">
+      <button onclick="goBack()" style="background:rgba(255,255,255,.2);border:none;color:#fff;width:34px;height:34px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;">‹</button>
+      <div>
+        <div class="topbar-title">Update Status</div>
+        <div class="topbar-sub" id="updateSubtitle"></div>
+      </div>
+    </div>
+  </div>
+  <div class="scroll">
+    <!-- Employee selector (admin/manager only) -->
+    <div id="empSelectorWrap" style="display:none;margin-bottom:4px;">
+      <span class="field-label">Select Employee</span>
+      <select class="field-select" id="mEmpSelect"></select>
+    </div>
+
+    <!-- Date -->
+    <span class="field-label">Date</span>
+    <input type="date" class="field-input" id="mDate">
+
+    <!-- Status type picker -->
+    <span class="field-label">Status</span>
+    <div class="status-grid">
+      <div class="status-opt" onclick="selectStatus('On Site')"    data-status="On Site">
+        <div class="opt-icon">🏗️</div><div class="opt-label">On Site</div>
+      </div>
+      <div class="status-opt" onclick="selectStatus('In Office')"  data-status="In Office">
+        <div class="opt-icon">🏢</div><div class="opt-label">In Office</div>
+      </div>
+      <div class="status-opt" onclick="selectStatus('Work From Home')" data-status="Work From Home">
+        <div class="opt-icon">🏠</div><div class="opt-label">Work From Home</div>
+      </div>
+      <div class="status-opt" onclick="selectStatus('On Leave')"   data-status="On Leave">
+        <div class="opt-icon">🌴</div><div class="opt-label">On Leave</div>
+      </div>
+      <div class="status-opt" onclick="selectStatus('Holiday')"    data-status="Holiday">
+        <div class="opt-icon">🎉</div><div class="opt-label">Holiday</div>
+      </div>
+      <div class="status-opt" onclick="selectStatus('In Office')"  data-status="In Office" style="display:none;"></div>
+    </div>
+
+    <!-- Conditional fields -->
+    <div class="form-section" id="fs_site">
+      <span class="field-label">Site Name *</span>
+      <input type="text" class="field-input" id="mSiteName" placeholder="Enter site name">
+    </div>
+    <div class="form-section" id="fs_work">
+      <span class="field-label">Type of Work *</span>
+      <select class="field-select" id="mWorkType">
+        <option value="">Select type</option>
+        <option>Project</option>
+        <option>Service</option>
+        <option>Office Work</option>
+        <option>BMS Integration</option>
+        <option>Site Survey</option>
+      </select>
+      <span class="field-label">Scope of Work *</span>
+      <textarea class="field-textarea" id="mScope" placeholder="Describe the scope of work..."></textarea>
+    </div>
+
+    <button class="submit-btn" id="mSubmitBtn" onclick="submitMobileStatus()">Submit Status</button>
+  </div>
+</div>
+
+<!-- TEAM VIEW -->
+<div class="view" id="teamView">
+  <div class="topbar">
+    <div class="topbar-left">
+      <img src="/fluxgen-logo.png" class="topbar-logo" alt="" onerror="this.style.display='none'">
+      <div>
+        <div class="topbar-title">Team Today</div>
+        <div class="topbar-sub" id="teamDateLabel"></div>
+      </div>
+    </div>
+    <button onclick="loadTeam()" style="background:rgba(255,255,255,.2);border:none;color:#fff;width:34px;height:34px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
+  </div>
+  <div class="scroll">
+    <div id="teamList"><div class="loader"><div class="spin"></div> Loading...</div></div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV (shared) -->
+<div class="bottomnav" id="bottomNav" style="display:none;">
+  <button class="nav-item active" id="navHome" onclick="switchView('homeView');setActiveNav('navHome')">
+    <span class="nav-icon">🏠</span><span>Home</span>
+  </button>
+  <button class="nav-item" id="navUpdate" onclick="goUpdate();setActiveNav('navUpdate')">
+    <span class="nav-icon">📋</span><span>Update</span>
+  </button>
+  <button class="nav-item" id="navTeam" onclick="switchView('teamView');setActiveNav('navTeam')">
+    <span class="nav-icon">👥</span><span>Team</span>
+  </button>
+</div>
+
+<!-- PROFILE SHEET -->
+<div class="sheet-overlay" id="profileSheet" onclick="if(event.target===this)closeSheet()">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-name" id="sheetName"></div>
+    <div class="sheet-role" id="sheetRole"></div>
+    <button class="sheet-btn logout" onclick="doLogout()">Sign Out</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="mToast"></div>
+
+<script>
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzFHKifKgVF5bW56sTV4PX0I-4bJn1PoGg6fXE8oQfoI-reRSRq07tBVKM_B-n-FVfqcw/exec";
+
+let mUser = null;
+let mEmployees = [];
+let mSelectedStatus = "";
+let mPrevView = "homeView";
+
+// ── INIT ──
+window.onload = async () => {
+  const saved = localStorage.getItem("zm_session");
+  if (saved) {
+    try {
+      mUser = JSON.parse(saved);
+      await afterLogin();
+      return;
+    } catch(e) {}
+  }
+  showView("loginView");
+};
+
+// ── AUTH ──
+async function doLogin() {
+  const u = document.getElementById("mUsername").value.trim();
+  const p = document.getElementById("mPassword").value.trim();
+  const btn = document.getElementById("loginBtn");
+  const err = document.getElementById("loginErr");
+  err.style.display = "none";
+  if (!u || !p) { err.textContent = "Enter username and password"; err.style.display = "block"; return; }
+  btn.textContent = "Signing in..."; btn.disabled = true;
+  try {
+    const res = await fetch(SCRIPT_URL + "?action=getUsers");
+    const data = await res.json();
+    const users = data.users || [];
+    // Hard-coded super admin
+    const all = [{ username: "admin", password: "admin123", displayName: "Super Admin", role: "admin" }, ...users];
+    const found = all.find(x => x.username.toLowerCase() === u.toLowerCase() && x.password === p);
+    if (found) {
+      mUser = found;
+      localStorage.setItem("zm_session", JSON.stringify(mUser));
+      await afterLogin();
+    } else {
+      err.style.display = "block";
+    }
+  } catch(e) {
+    err.textContent = "Connection error. Try again."; err.style.display = "block";
+  } finally {
+    btn.textContent = "Sign In"; btn.disabled = false;
+  }
+}
+
+async function afterLogin() {
+  // Fetch employees
+  try {
+    const res = await fetch(SCRIPT_URL + "?action=getEmployees");
+    const data = await res.json();
+    mEmployees = data.employees || [];
+  } catch(e) { mEmployees = []; }
+
+  // Set up UI
+  document.getElementById("avatarBtn").textContent = (mUser.displayName||mUser.username).substring(0,2).toUpperCase();
+  document.getElementById("sheetName").textContent = mUser.displayName || mUser.username;
+  document.getElementById("sheetRole").textContent = (mUser.role||"user").charAt(0).toUpperCase() + (mUser.role||"user").slice(1);
+
+  const today = getTodayStr();
+  const dateStr = formatDate(today);
+  document.getElementById("topbarDate").textContent = dateStr;
+  document.getElementById("heroDate").textContent = dateStr;
+  document.getElementById("teamDateLabel").textContent = dateStr;
+
+  const hour = new Date().getHours();
+  const greet = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  document.getElementById("heroGreeting").textContent = greet + ", " + (mUser.displayName||mUser.username).split(" ")[0] + "!";
+
+  await loadMyStatus();
+  loadTeamSummary();
+
+  document.getElementById("bottomNav").style.display = "flex";
+  showView("homeView");
+}
+
+function doLogout() {
+  mUser = null; localStorage.removeItem("zm_session");
+  document.getElementById("bottomNav").style.display = "none";
+  closeSheet();
+  showView("loginView");
+}
+
+// ── MY STATUS ──
+async function loadMyStatus() {
+  const today = getTodayStr();
+  try {
+    const emp = mEmployees.find(e => e.name.toLowerCase() === (mUser.displayName||"").toLowerCase()
+      || e.id === mUser.empId);
+    if (!emp) { document.getElementById("heroStatus").textContent = "Not linked to an employee"; return; }
+    const res = await fetch(SCRIPT_URL + "?action=getStatus&date=" + today);
+    const data = await res.json();
+    const row = (data.data||[]).find(r => r.empId === emp.id || r.empName === emp.name);
+    if (row) {
+      document.getElementById("heroStatus").textContent = row.status;
+      document.getElementById("heroSite").textContent = row.siteName ? row.siteName + (row.workType ? " · " + row.workType : "") : "";
+    } else {
+      document.getElementById("heroStatus").textContent = "Not yet updated";
+      document.getElementById("heroSite").textContent = "";
+    }
+  } catch(e) {}
+}
+
+// ── TEAM SUMMARY ──
+async function loadTeamSummary() {
+  const box = document.getElementById("homeSummary");
+  try {
+    const today = getTodayStr();
+    const res = await fetch(SCRIPT_URL + "?action=getStatus&date=" + today);
+    const data = await res.json();
+    const rows = data.data || [];
+    const onSite   = rows.filter(r => r.status === "On Site").length;
+    const inOffice = rows.filter(r => r.status === "In Office").length;
+    const onLeave  = rows.filter(r => r.status === "On Leave" || r.status === "Holiday").length;
+    const total    = mEmployees.length;
+    const avail    = total - rows.length;
+    box.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="background:#fde8e8;border-radius:12px;padding:14px;text-align:center;">
+          <div style="font-size:24px;font-weight:800;color:#c0392b;">${onSite}</div>
+          <div style="font-size:11px;color:#c0392b;font-weight:600;margin-top:2px;">On Site</div>
+        </div>
+        <div style="background:#e8f5e9;border-radius:12px;padding:14px;text-align:center;">
+          <div style="font-size:24px;font-weight:800;color:#1e8449;">${inOffice}</div>
+          <div style="font-size:11px;color:#1e8449;font-weight:600;margin-top:2px;">In Office</div>
+        </div>
+        <div style="background:#f3e5f5;border-radius:12px;padding:14px;text-align:center;">
+          <div style="font-size:24px;font-weight:800;color:#6c3483;">${onLeave}</div>
+          <div style="font-size:11px;color:#6c3483;font-weight:600;margin-top:2px;">On Leave</div>
+        </div>
+        <div style="background:#f5f5f5;border-radius:12px;padding:14px;text-align:center;">
+          <div style="font-size:24px;font-weight:800;color:#636e72;">${avail}</div>
+          <div style="font-size:11px;color:#636e72;font-weight:600;margin-top:2px;">Available</div>
+        </div>
+      </div>`;
+  } catch(e) { box.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">Could not load team data</div></div>'; }
+}
+
+// ── TEAM LIST ──
+async function loadTeam() {
+  const box = document.getElementById("teamList");
+  box.innerHTML = '<div class="loader"><div class="spin"></div> Loading...</div>';
+  try {
+    const today = getTodayStr();
+    const res = await fetch(SCRIPT_URL + "?action=getStatus&date=" + today);
+    const data = await res.json();
+    const rows = data.data || [];
+    const rowMap = {};
+    rows.forEach(r => { rowMap[r.empId || r.empName] = r; });
+    const assigned  = mEmployees.filter(e => rowMap[e.id] && rowMap[e.id].status !== "In Office" && rowMap[e.id].status !== "On Leave" && rowMap[e.id].status !== "Holiday");
+    const inOffice  = mEmployees.filter(e => rowMap[e.id] && rowMap[e.id].status === "In Office");
+    const onLeave   = mEmployees.filter(e => rowMap[e.id] && (rowMap[e.id].status === "On Leave" || rowMap[e.id].status === "Holiday"));
+    const available = mEmployees.filter(e => !rowMap[e.id]);
+
+    let html = "";
+    if (assigned.length)  html += group("🔴", "#c0392b", "Assigned", assigned,  rowMap, "av-assigned");
+    if (inOffice.length)  html += group("🟢", "#1e8449", "Available at Office", inOffice, rowMap, "av-office");
+    if (onLeave.length)   html += group("🟣", "#6c3483", "On Leave", onLeave,   rowMap, "av-leave");
+    if (available.length) html += group("⚪", "#636e72", "Available", available, rowMap, "av-free");
+    if (!html) html = '<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">No data for today yet</div></div>';
+    box.innerHTML = html;
+  } catch(e) { box.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">Could not load team</div></div>'; }
+}
+
+function group(dot, color, label, emps, rowMap, avClass) {
+  const cards = emps.map(e => {
+    const r = rowMap[e.id] || {};
+    const initials = e.name.split(" ").map(n=>n[0]).join("").substring(0,2);
+    const detail = r.status ? (r.siteName ? r.siteName + " · " : "") + r.status : "No status";
+    return `<div class="team-card">
+      <div class="team-avatar ${avClass}">${initials}</div>
+      <div class="team-info">
+        <div class="team-name">${e.name}</div>
+        <div class="team-detail">${detail}</div>
+      </div>
+    </div>`;
+  }).join("");
+  return `<div class="group-header"><span style="color:${color};">${dot}</span> <span style="color:${color};">${label}</span> <span style="font-size:11px;background:${color}20;color:${color};padding:1px 8px;border-radius:10px;">${emps.length}</span></div>${cards}`;
+}
+
+// ── UPDATE STATUS ──
+function goUpdate() {
+  mPrevView = "homeView";
+  mSelectedStatus = "";
+  document.querySelectorAll(".status-opt").forEach(o => o.classList.remove("selected"));
+  document.querySelectorAll(".form-section").forEach(s => s.classList.remove("visible"));
+  document.getElementById("mDate").value = getTodayStr();
+  document.getElementById("mSiteName").value = "";
+  document.getElementById("mWorkType").value = "";
+  document.getElementById("mScope").value = "";
+
+  // Admin/manager can pick employee
+  const isAdmin = mUser.role === "admin" || mUser.role === "manager";
+  const wrap = document.getElementById("empSelectorWrap");
+  if (isAdmin) {
+    wrap.style.display = "block";
+    const sel = document.getElementById("mEmpSelect");
+    sel.innerHTML = mEmployees.map(e => `<option value="${e.id}">${e.name} (${e.role})</option>`).join("");
+  } else {
+    wrap.style.display = "none";
+  }
+  document.getElementById("updateSubtitle").textContent = isAdmin ? "Select employee & status" : (mUser.displayName || mUser.username);
+  showView("updateView");
+  setActiveNav("navUpdate");
+}
+
+function selectStatus(s) {
+  mSelectedStatus = s;
+  document.querySelectorAll(".status-opt").forEach(o => {
+    o.classList.toggle("selected", o.dataset.status === s);
+  });
+  // Show/hide conditional fields
+  const isLeave = s === "On Leave" || s === "Holiday";
+  const isWFH   = s === "Work From Home";
+  const isOffice = s === "In Office";
+  document.getElementById("fs_site").classList.toggle("visible", !isLeave && !isWFH && !isOffice);
+  document.getElementById("fs_work").classList.toggle("visible", !isLeave);
+}
+
+async function submitMobileStatus() {
+  if (!mSelectedStatus) { showToast("Please select a status", "error"); return; }
+  const date = document.getElementById("mDate").value;
+  if (!date) { showToast("Please select a date", "error"); return; }
+
+  const isLeave = mSelectedStatus === "On Leave" || mSelectedStatus === "Holiday";
+  const isWFH   = mSelectedStatus === "Work From Home";
+  const isOffice = mSelectedStatus === "In Office";
+  const needsSite = !isLeave && !isWFH && !isOffice;
+  const needsWork = !isLeave;
+
+  const siteName = document.getElementById("mSiteName").value.trim();
+  const workType = document.getElementById("mWorkType").value;
+  const scope    = document.getElementById("mScope").value.trim();
+
+  if (needsSite && !siteName) { showToast("Please enter site name", "error"); return; }
+  if (needsWork && !workType)  { showToast("Please select type of work", "error"); return; }
+  if (needsWork && !scope)     { showToast("Please enter scope of work", "error"); return; }
+
+  // Determine employee
+  let emp;
+  if (mUser.role === "admin" || mUser.role === "manager") {
+    const selId = document.getElementById("mEmpSelect").value;
+    emp = mEmployees.find(e => e.id === selId);
+  } else {
+    emp = mEmployees.find(e => e.name.toLowerCase() === (mUser.displayName||"").toLowerCase());
+  }
+  if (!emp) { showToast("Employee not found. Contact admin.", "error"); return; }
+
+  const btn = document.getElementById("mSubmitBtn");
+  btn.disabled = true; btn.textContent = "Submitting...";
+
+  const row = { action: "submitStatus", empId: emp.id, empName: emp.name, role: emp.role,
+    siteName: siteName || "", workType: workType || "", scopeOfWork: scope || "",
+    status: mSelectedStatus, date };
+
+  try {
+    await formPost(row);
+    showToast("Status updated!", "success");
+    await loadMyStatus();
+    loadTeamSummary();
+    setTimeout(() => { switchView("homeView"); setActiveNav("navHome"); }, 1000);
+  } catch(e) { showToast("Failed to submit. Try again.", "error"); }
+  finally { btn.disabled = false; btn.textContent = "Submit Status"; }
+}
+
+// ── HELPERS ──
+function getTodayStr() {
+  const d = new Date(); const pad = n => String(n).padStart(2,"0");
+  return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate());
+}
+function formatDate(str) {
+  if (!str) return ""; const [y,m,d] = str.split("-");
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const days   = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const dt = new Date(y, m-1, d);
+  return days[dt.getDay()] + ", " + d + " " + months[m-1] + " " + y;
+}
+
+async function formPost(data) {
+  return new Promise((resolve, reject) => {
+    const params = new URLSearchParams(data).toString();
+    const img = document.createElement("img"); img.style.display = "none";
+    let done = false;
+    const finish = (ok) => { if (done) return; done = true; document.body.removeChild(img); ok ? resolve() : reject(); };
+    img.onload = () => finish(true);
+    img.onerror = () => finish(true); // CORS means success
+    document.body.appendChild(img);
+    img.src = SCRIPT_URL + "?" + params;
+    setTimeout(() => finish(true), 4000);
+    // Also do a no-cors fetch
+    fetch(SCRIPT_URL, { method: "POST", body: params, headers: {"Content-Type":"application/x-www-form-urlencoded"}, mode: "no-cors" }).catch(()=>{});
+  });
+}
+
+function showView(id) {
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  if (id === "teamView") loadTeam();
+}
+function switchView(id) { showView(id); }
+function goBack() { showView(mPrevView); setActiveNav("navHome"); }
+function setActiveNav(id) {
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  const el = document.getElementById(id);
+  if (el) el.classList.add("active");
+}
+function openSheet()  { document.getElementById("profileSheet").classList.add("open"); }
+function closeSheet() { document.getElementById("profileSheet").classList.remove("open"); }
+let toastTimer;
+function showToast(msg, type) {
+  const t = document.getElementById("mToast");
+  t.textContent = msg; t.className = "toast show " + (type||"");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 2800);
+}
+</script>
+</body>
+</html>

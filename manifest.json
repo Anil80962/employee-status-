@@ -1,0 +1,14 @@
+{
+  "name": "Fluxgen Status",
+  "short_name": "FG Status",
+  "description": "Quick status updates for Fluxgen field engineers",
+  "start_url": "/mobile.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1a3a5c",
+  "theme_color": "#1a3a5c",
+  "icons": [
+    { "src": "/fluxgen-logo.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/fluxgen-logo.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
