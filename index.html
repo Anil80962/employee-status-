@@ -186,8 +186,28 @@
         .emp-card.assigned .emp-avatar {
             background: linear-gradient(135deg, #c0392b, #e74c3c);
         }
+        .emp-card.office {
+            border-color: #27ae60; background: #f0faf4; opacity: 0.9;
+        }
+        .emp-card.office .emp-avatar {
+            background: linear-gradient(135deg, #1e8449, #27ae60);
+        }
+        .emp-card.on-leave {
+            border-color: #8e44ad; background: #f9f0fd; opacity: 0.85;
+        }
+        .emp-card.on-leave .emp-avatar {
+            background: linear-gradient(135deg, #6c3483, #8e44ad);
+        }
         .assigned-badge {
             font-size: 10px; font-weight: 700; color: #fff; background: #e74c3c;
+            padding: 2px 8px; border-radius: 10px; white-space: nowrap;
+        }
+        .office-badge {
+            font-size: 10px; font-weight: 700; color: #fff; background: #27ae60;
+            padding: 2px 8px; border-radius: 10px; white-space: nowrap;
+        }
+        .leave-badge {
+            font-size: 10px; font-weight: 700; color: #fff; background: #8e44ad;
             padding: 2px 8px; border-radius: 10px; white-space: nowrap;
         }
         .add-btn {
@@ -418,6 +438,7 @@
                                 <option value="On Leave">On Leave</option>
                                 <option value="Work From Home">Work From Home</option>
                                 <option value="Holiday">Holiday</option>
+                                <option value="Weekend">Weekend</option>
                             </select>
                         </div>
                     </div>
@@ -1403,9 +1424,9 @@
 
             // Split into 4 buckets
             const getStatus = e => window._assignmentInfo?.[e.id]?.status || "";
-            const assigned  = employees.filter(e =>  assignedEmployeeIds.has(e.id) && !["In Office","On Leave","Holiday"].includes(getStatus(e)));
+            const assigned  = employees.filter(e =>  assignedEmployeeIds.has(e.id) && !["In Office","On Leave","Holiday","Weekend"].includes(getStatus(e)));
             const inOffice  = employees.filter(e =>  assignedEmployeeIds.has(e.id) && getStatus(e) === "In Office");
-            const onLeave   = employees.filter(e =>  assignedEmployeeIds.has(e.id) && ["On Leave","Holiday"].includes(getStatus(e)));
+            const onLeave   = employees.filter(e =>  assignedEmployeeIds.has(e.id) && ["On Leave","Holiday","Weekend"].includes(getStatus(e)));
             const available = employees.filter(e => !assignedEmployeeIds.has(e.id));
 
             const hasDate = !!document.getElementById("assignCheckDate").value;
@@ -1437,10 +1458,35 @@
 
         function createEmpCard(emp, isAssigned, info) {
             const initials = emp.name.split(" ").map(n => n[0]).join("").substring(0,2);
+            const status = info?.status || "";
+            const isOffice = status === "In Office";
+            const isLeave  = status === "On Leave" || status === "Holiday" || status === "Weekend";
+
+            let cardClass = "emp-card" + (selectedEmployees.has(emp.id) ? " selected" : "");
+            let badge = "";
+            let infoColor = "#c0392b";
+            if (isAssigned) {
+                if (isOffice) {
+                    cardClass += " office";
+                    badge = '<span class="office-badge">In Office</span>';
+                    infoColor = "#1e8449";
+                } else if (isLeave) {
+                    cardClass += " on-leave";
+                    badge = '<span class="leave-badge">' + status + '</span>';
+                    infoColor = "#6c3483";
+                } else {
+                    cardClass += " assigned";
+                    badge = '<span class="assigned-badge">Assigned</span>';
+                    infoColor = "#c0392b";
+                }
+            } else {
+                badge = `<div class="check-icon">${selectedEmployees.has(emp.id) ? "&#10003;" : ""}</div>`;
+            }
+
             const card = document.createElement("div");
-            card.className = "emp-card" + (selectedEmployees.has(emp.id) ? " selected" : "") + (isAssigned ? " assigned" : "");
-            const statusInfo = isAssigned && window._assignmentInfo?.[emp.id]
-                ? `<div style="font-size:11px;color:#c0392b;margin-top:2px;">${window._assignmentInfo[emp.id].siteName} - ${window._assignmentInfo[emp.id].status}</div>`
+            card.className = cardClass;
+            const statusInfo = isAssigned && info
+                ? `<div style="font-size:11px;color:${infoColor};margin-top:2px;">${info.siteName ? info.siteName + ' - ' : ''}${info.status}</div>`
                 : "";
             card.innerHTML = `
                 <div class="emp-avatar">${initials}</div>
@@ -1449,7 +1495,7 @@
                     <div class="emp-role">${emp.role}</div>
                     ${statusInfo}
                 </div>
-                ${isAssigned ? '<span class="assigned-badge">Assigned</span>' : `<div class="check-icon">${selectedEmployees.has(emp.id) ? "&#10003;" : ""}</div>`}
+                ${badge}
             `;
             card.onclick = () => isAssigned ? loadAssignedData(emp.id) : toggleEmployee(emp.id);
             return card;
@@ -1529,7 +1575,7 @@
 
         function updateStatusFields() {
             const status = (document.getElementById("empStatus") || {}).value || "";
-            const isOnLeave = status === "On Leave" || status === "Holiday";
+            const isOnLeave = status === "On Leave" || status === "Holiday" || status === "Weekend";
             const isWFH     = status === "Work From Home";
 
             const siteWorkRow   = document.getElementById("siteWorkRow");
@@ -1561,7 +1607,7 @@
             const toDate     = document.getElementById("toDate").value;
             const status     = document.getElementById("empStatus").value;
 
-            const isOnLeave = status === "On Leave" || status === "Holiday";
+            const isOnLeave = status === "On Leave" || status === "Holiday" || status === "Weekend";
             const isWFH     = status === "Work From Home";
 
             if (!fromDate) { showToast("Please select a date.", "error"); return; }
@@ -1651,7 +1697,7 @@
                     if (!weekData[r.empName]) weekData[r.empName] = {};
                     if (r.date && dates.includes(r.date)) {
                         const st = r.status || "";
-                        if (st === "On Leave" || st === "Holiday") {
+                        if (st === "On Leave" || st === "Holiday" || st === "Weekend") {
                             weekData[r.empName][r.date] = { label: st, type: "leave" };
                         } else if (st === "Work From Home") {
                             weekData[r.empName][r.date] = { label: "WFH", type: "wfh" };
