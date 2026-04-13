@@ -1753,7 +1753,7 @@
                     const nvd = r.nextVisitDate || "";
                     const pctColor = pct >= 70 ? '#27ae60' : pct >= 40 ? '#f39c12' : '#e74c3c';
 
-                    const canEditWorkDone = currentUser && (currentUser.role === "admin");
+                    const canEditWorkDone = currentUser && (currentUser.role === "admin" || currentUser.role === "manager" || r.empName === currentUser.displayName);
                     // Check if a saved report exists for this row
                     const _rptKey = 'fluxgen_report_' + r.empId + '_' + r.date;
                     const _hasSavedReport = !!localStorage.getItem(_rptKey);
