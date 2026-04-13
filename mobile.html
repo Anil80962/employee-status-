@@ -257,6 +257,9 @@
       <div class="status-opt" onclick="selectStatus('Holiday')"    data-status="Holiday">
         <div class="opt-icon">🎉</div><div class="opt-label">Holiday</div>
       </div>
+      <div class="status-opt" onclick="selectStatus('Weekend')"    data-status="Weekend">
+        <div class="opt-icon">⛺</div><div class="opt-label">Weekend</div>
+      </div>
       <div class="status-opt" onclick="selectStatus('In Office')"  data-status="In Office" style="display:none;"></div>
     </div>
 
@@ -444,7 +447,7 @@ async function loadTeamSummary() {
     const rows = data.data || [];
     const onSite   = rows.filter(r => r.status === "On Site").length;
     const inOffice = rows.filter(r => r.status === "In Office").length;
-    const onLeave  = rows.filter(r => r.status === "On Leave" || r.status === "Holiday").length;
+    const onLeave  = rows.filter(r => r.status === "On Leave" || r.status === "Holiday" || r.status === "Weekend").length;
     const total    = mEmployees.length;
     const avail    = total - rows.length;
     box.innerHTML = `
@@ -480,9 +483,9 @@ async function loadTeam() {
     const rows = data.data || [];
     const rowMap = {};
     rows.forEach(r => { rowMap[r.empId || r.empName] = r; });
-    const assigned  = mEmployees.filter(e => rowMap[e.id] && rowMap[e.id].status !== "In Office" && rowMap[e.id].status !== "On Leave" && rowMap[e.id].status !== "Holiday");
+    const assigned  = mEmployees.filter(e => rowMap[e.id] && !["In Office","On Leave","Holiday","Weekend"].includes(rowMap[e.id].status));
     const inOffice  = mEmployees.filter(e => rowMap[e.id] && rowMap[e.id].status === "In Office");
-    const onLeave   = mEmployees.filter(e => rowMap[e.id] && (rowMap[e.id].status === "On Leave" || rowMap[e.id].status === "Holiday"));
+    const onLeave   = mEmployees.filter(e => rowMap[e.id] && ["On Leave","Holiday","Weekend"].includes(rowMap[e.id].status));
     const available = mEmployees.filter(e => !rowMap[e.id]);
 
     let html = "";
@@ -543,7 +546,7 @@ function selectStatus(s) {
     o.classList.toggle("selected", o.dataset.status === s);
   });
   // Show/hide conditional fields
-  const isLeave = s === "On Leave" || s === "Holiday";
+  const isLeave = s === "On Leave" || s === "Holiday" || s === "Weekend";
   const isWFH   = s === "Work From Home";
   const isOffice = s === "In Office";
   document.getElementById("fs_site").classList.toggle("visible", !isLeave && !isWFH && !isOffice);
@@ -555,7 +558,7 @@ async function submitMobileStatus() {
   const date = document.getElementById("mDate").value;
   if (!date) { showToast("Please select a date", "error"); return; }
 
-  const isLeave = mSelectedStatus === "On Leave" || mSelectedStatus === "Holiday";
+  const isLeave = mSelectedStatus === "On Leave" || mSelectedStatus === "Holiday" || mSelectedStatus === "Weekend";
   const isWFH   = mSelectedStatus === "Work From Home";
   const isOffice = mSelectedStatus === "In Office";
   const needsSite = !isLeave && !isWFH && !isOffice;
