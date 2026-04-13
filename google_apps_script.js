@@ -48,7 +48,27 @@ function doGet(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
 
-    if (action === "getEmployees") {
+    if (action === "getUsers") {
+      var sheet = ss.getSheetByName("Users");
+      if (!sheet) {
+        result = { status: "success", users: {} };
+      } else {
+        var data = sheet.getDataRange().getValues();
+        var users = {};
+        for (var i = 1; i < data.length; i++) {
+          if (data[i][0]) {
+            users[String(data[i][0])] = {
+              password: String(data[i][1]),
+              role: String(data[i][2]),
+              displayName: String(data[i][3])
+            };
+          }
+        }
+        result = { status: "success", users: users };
+      }
+    }
+
+    else if (action === "getEmployees") {
       var sheet = ss.getSheetByName("Employees");
       if (!sheet) {
         result = { status: "success", employees: [] };
@@ -254,6 +274,64 @@ function doPost(e) {
         // If no matching row found, add headers if needed and note it
         if (!found) {
           // Could not find matching status entry to update
+        }
+      }
+    }
+
+    else if (action === "addUser") {
+      var sheet = ss.getSheetByName("Users");
+      if (!sheet) {
+        sheet = ss.insertSheet("Users");
+        sheet.appendRow(["Username", "Password", "Role", "DisplayName"]);
+      }
+      // Check if user already exists, update if so
+      var data = sheet.getDataRange().getValues();
+      var targetUser = e.parameter.username || "";
+      var found = false;
+      for (var i = data.length - 1; i >= 1; i--) {
+        if (String(data[i][0]) === targetUser) {
+          sheet.getRange(i + 1, 2).setValue(e.parameter.password || "");
+          sheet.getRange(i + 1, 3).setValue(e.parameter.role || "admin");
+          sheet.getRange(i + 1, 4).setValue(e.parameter.displayName || "");
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        sheet.appendRow([
+          targetUser,
+          e.parameter.password || "",
+          e.parameter.role || "admin",
+          e.parameter.displayName || ""
+        ]);
+      }
+    }
+
+    else if (action === "deleteUser") {
+      var sheet = ss.getSheetByName("Users");
+      if (sheet) {
+        var data = sheet.getDataRange().getValues();
+        var targetUser = e.parameter.username || "";
+        for (var i = data.length - 1; i >= 1; i--) {
+          if (String(data[i][0]) === targetUser) {
+            sheet.deleteRow(i + 1);
+            break;
+          }
+        }
+      }
+    }
+
+    else if (action === "editEmployee") {
+      var sheet = ss.getSheetByName("Employees");
+      if (sheet) {
+        var data = sheet.getDataRange().getValues();
+        var targetId = e.parameter.empId || "";
+        for (var i = data.length - 1; i >= 1; i--) {
+          if (String(data[i][0]) === targetId) {
+            sheet.getRange(i + 1, 2).setValue(e.parameter.empName || "");
+            sheet.getRange(i + 1, 3).setValue(e.parameter.role || "");
+            break;
+          }
         }
       }
     }
