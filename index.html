@@ -356,6 +356,7 @@
                     <div style="display:flex;align-items:center;gap:10px;">
                         <label style="font-weight:600;color:#555;font-size:13px;">Date:</label>
                         <input type="date" id="assignCheckDate" onchange="loadAssignmentStatus()" style="padding:8px 12px;border:2px solid #2c5364;border-radius:8px;font-size:14px;font-weight:600;color:#2c5364;outline:none;">
+                        <button onclick="loadAssignmentStatus()" title="Refresh" style="padding:8px 12px;background:#2c5364;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px;font-weight:600;">&#x21bb; Refresh</button>
                     </div>
                 </div>
                 <div id="assignedSection" style="display:none;margin-bottom:24px;">
@@ -456,6 +457,7 @@
                     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
                         <label style="color:#555;font-weight:600;font-size:13px;">Week of:</label>
                         <input type="date" id="weekStartDate" onchange="loadWeeklyOverview()" style="padding:8px 12px; border:2px solid #2c5364; border-radius:8px; font-size:14px; font-weight:600; color:#2c5364; outline:none;">
+                        <button onclick="loadWeeklyOverview()" title="Refresh" style="padding:8px 12px;background:#2c5364;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px;font-weight:600;">&#x21bb; Refresh</button>
                     </div>
                 </div>
                 <div style="overflow-x:auto; margin-top:16px;">
