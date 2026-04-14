@@ -425,7 +425,7 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label>From Date <span class="req">*</span></label>
-                            <input type="date" id="statusDate">
+                            <input type="date" id="statusDate" onchange="autoWeekendStatus()">
                         </div>
                         <div class="form-group">
                             <label>To Date <span style="font-weight:400;font-size:11px;color:#888;">(optional, for multiple days)</span></label>
@@ -1575,6 +1575,16 @@
             updateStatusFields();
         }
 
+        function autoWeekendStatus() {
+            const val = document.getElementById("statusDate").value;
+            if (!val) return;
+            const day = new Date(val).getDay(); // 0=Sun, 6=Sat
+            if (day === 0 || day === 6) {
+                document.getElementById("empStatus").value = "Weekend";
+            }
+            updateStatusFields();
+        }
+
         function updateStatusFields() {
             const status = (document.getElementById("empStatus") || {}).value || "";
             const isOnLeave = status === "On Leave" || status === "Holiday" || status === "Weekend";
@@ -1720,6 +1730,8 @@
                 body.innerHTML = empNames.map(name => {
                     const cells = dates.map(date => {
                         const entry = (weekData[name] && weekData[name][date]) || null;
+                        const dayOfWeek = new Date(date).getDay(); // 0=Sun,6=Sat
+                        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
                         let bg = "", color = "", label = "-";
                         if (entry) {
                             label = entry.label;
@@ -1727,8 +1739,10 @@
                             else if (entry.type === "wfh")    { bg = "#e8f5e9"; color = "#27ae60"; }
                             else if (entry.type === "office") { bg = "#e3f2fd"; color = "#1565c0"; }
                             else                              { bg = "#e3f2fd"; color = "#1a3a5c"; }
+                        } else if (isWeekend) {
+                            label = "Weekend"; bg = "#f3e5f5"; color = "#7b1fa2";
                         }
-                        const style = entry ? `background:${bg};color:${color};font-weight:600;` : "color:#ccc;";
+                        const style = (entry || isWeekend) ? `background:${bg};color:${color};font-weight:600;` : "color:#ccc;";
                         return '<td style="text-align:center;font-size:12px;padding:10px 6px;' + style + '">' + label + '</td>';
                     }).join("");
                     return '<tr><td style="font-weight:600;position:sticky;left:0;background:#fff;z-index:1;white-space:nowrap;">' + name + '</td>' + cells + '</tr>';
