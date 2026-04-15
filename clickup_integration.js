@@ -81,9 +81,11 @@ function setupClickUpOnce() {
     var payload = { name: f.name, type: f.type };
     if (f.config) payload.type_config = f.config;
     var res = cuReq("POST", "/list/" + listId + "/field", payload);
-    if (res.id) {
-      cuSet("CU_FIELD_" + f.key, res.id);
-      Logger.log("✅ Field: " + f.name + " → " + res.id);
+    // ClickUp returns field under res.field.id OR res.id depending on version
+    var fieldId = (res.field && res.field.id) ? res.field.id : res.id;
+    if (fieldId) {
+      cuSet("CU_FIELD_" + f.key, fieldId);
+      Logger.log("✅ Field: " + f.name + " → " + fieldId);
     } else {
       Logger.log("⚠️  Field error (" + f.name + "): " + JSON.stringify(res));
     }
@@ -119,8 +121,8 @@ function _createEmployeeTasks(listId) {
 
     var res = cuReq("POST", "/list/" + listId + "/task", {
       name: empName,
-      description: "Role: " + empRole + "\nEmp ID: " + empId,
-      status: "Available"
+      description: "Role: " + empRole + "\nEmp ID: " + empId
+      // No status on create — uses list default to avoid "Status not found"
     });
 
     if (res.id) {
@@ -131,6 +133,51 @@ function _createEmployeeTasks(listId) {
     }
     Utilities.sleep(400);
   }
+}
+
+// =====================================================
+// ▶ REPAIR — Run if field IDs were not saved (run after setupClickUpOnce)
+// =====================================================
+function repairFieldIds() {
+  var listId = cuGet("CU_LIST_ID");
+  if (!listId) { Logger.log("No list ID found. Run setupClickUpOnce first."); return; }
+
+  var res = cuReq("GET", "/list/" + listId + "/field");
+  var fields = res.fields || [];
+  Logger.log("Found " + fields.length + " fields in ClickUp list");
+
+  var nameToKey = {
+    "Site Name":       "SITE_NAME",
+    "Type of Work":    "WORK_TYPE",
+    "Scope of Work":   "SCOPE",
+    "Status Date":     "STATUS_DATE",
+    "Work Done":       "WORK_DONE",
+    "Completion %":    "COMPLETION",
+    "Remarks":         "REMARKS",
+    "Next Visit":      "NEXT_VISIT",
+    "Next Visit Date": "NEXT_VISIT_DATE"
+  };
+
+  fields.forEach(function(f) {
+    var key = nameToKey[f.name];
+    if (key) {
+      cuSet("CU_FIELD_" + key, f.id);
+      Logger.log("✅ Saved: " + f.name + " → " + f.id);
+    }
+  });
+  Logger.log("Field IDs repaired! Now run createEmployeeTasks()");
+}
+
+// ▶ Run this to create employee tasks (if they failed before)
+function createEmployeeTasks() {
+  _createEmployeeTasks(cuGet("CU_LIST_ID"));
+}
+
+// ▶ Check what statuses exist on the list
+function checkListStatuses() {
+  var listId = cuGet("CU_LIST_ID");
+  var res = cuReq("GET", "/list/" + listId);
+  Logger.log("Statuses: " + JSON.stringify((res.statuses || []).map(function(s){ return s.status; })));
 }
 
 // =====================================================
