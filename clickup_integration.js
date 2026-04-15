@@ -173,6 +173,13 @@ function createEmployeeTasks() {
   _createEmployeeTasks(cuGet("CU_LIST_ID"));
 }
 
+// ▶ Run this if list already exists — saves the known list ID and repairs fields
+function useExistingList() {
+  cuSet("CU_LIST_ID", "901614494337");
+  Logger.log("✅ List ID saved: 901614494337");
+  repairFieldIds();
+}
+
 // ▶ Check what statuses exist on the list
 function checkListStatuses() {
   var listId = cuGet("CU_LIST_ID");
