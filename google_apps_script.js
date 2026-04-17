@@ -173,6 +173,34 @@ function doGet(e) {
       result = { status: "success", message: "Work done updated." };
     }
 
+    // ===== INVENTORY =====
+    else if (action === "getInventory") {
+      var sheet = ss.getSheetByName("Inventory");
+      if (!sheet) {
+        result = { status: "success", data: [] };
+      } else {
+        var data = sheet.getDataRange().getValues();
+        var items = [];
+        for (var i = 1; i < data.length; i++) {
+          if (data[i][0]) {
+            items.push({
+              itemId: String(data[i][0]),
+              name: String(data[i][1]),
+              category: String(data[i][2]),
+              qty: String(data[i][3]),
+              minStock: String(data[i][4] || "5"),
+              unit: String(data[i][5] || "pcs"),
+              location: String(data[i][6] || ""),
+              description: String(data[i][7] || ""),
+              lastUpdated: String(data[i][8] || ""),
+              updatedBy: String(data[i][9] || "")
+            });
+          }
+        }
+        result = { status: "success", data: items };
+      }
+    }
+
     else {
       result = { status: "success", message: "Fluxgen Operations API running." };
     }
@@ -366,6 +394,63 @@ function doPost(e) {
       if (sheet) {
         var data = sheet.getDataRange().getValues();
         var targetId = e.parameter.empId || "";
+        for (var i = data.length - 1; i >= 1; i--) {
+          if (String(data[i][0]) === targetId) {
+            sheet.deleteRow(i + 1);
+            break;
+          }
+        }
+      }
+    }
+
+    // ===== INVENTORY CRUD =====
+    else if (action === "addInventory") {
+      var sheet = ss.getSheetByName("Inventory");
+      if (!sheet) {
+        sheet = ss.insertSheet("Inventory");
+        sheet.appendRow(["ItemID", "Name", "Category", "Qty", "MinStock", "Unit", "Location", "Description", "LastUpdated", "UpdatedBy"]);
+      }
+      sheet.appendRow([
+        e.parameter.itemId || ("INV-" + Date.now()),
+        e.parameter.name || "",
+        e.parameter.category || "",
+        e.parameter.qty || "0",
+        e.parameter.minStock || "5",
+        e.parameter.unit || "pcs",
+        e.parameter.location || "",
+        e.parameter.description || "",
+        new Date().toLocaleString(),
+        e.parameter.updatedBy || ""
+      ]);
+    }
+
+    else if (action === "editInventory") {
+      var sheet = ss.getSheetByName("Inventory");
+      if (sheet) {
+        var data = sheet.getDataRange().getValues();
+        var targetId = e.parameter.itemId || "";
+        for (var i = data.length - 1; i >= 1; i--) {
+          if (String(data[i][0]) === targetId) {
+            sheet.getRange(i + 1, 2).setValue(e.parameter.name || "");
+            sheet.getRange(i + 1, 3).setValue(e.parameter.category || "");
+            sheet.getRange(i + 1, 4).setValue(e.parameter.qty || "0");
+            sheet.getRange(i + 1, 5).setValue(e.parameter.minStock || "5");
+            sheet.getRange(i + 1, 6).setValue(e.parameter.unit || "pcs");
+            sheet.getRange(i + 1, 7).setValue(e.parameter.location || "");
+            sheet.getRange(i + 1, 8).setValue(e.parameter.description || "");
+            sheet.getRange(i + 1, 9).setValue(new Date().toLocaleString());
+            sheet.getRange(i + 1, 10).setValue(e.parameter.updatedBy || "");
+            break;
+          }
+        }
+      }
+    }
+
+    else if (action === "deleteInventory") {
+      var sheet = ss.getSheetByName("Inventory");
+      if (sheet) {
+        var data = sheet.getDataRange().getValues();
+        var targetId = e.parameter.itemId || "";
         for (var i = data.length - 1; i >= 1; i--) {
           if (String(data[i][0]) === targetId) {
             sheet.deleteRow(i + 1);
