@@ -2924,14 +2924,14 @@
             dd.style.display = "block";
             const filtered = allSites.filter(s => s.name.toLowerCase().includes(query) || s.id.toLowerCase().includes(query));
             dd.innerHTML = filtered.slice(0, 50).map(s => {
-                const safeName = s.name.replace(/'/g, "&#39;");
-                return '<div style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid #f0f0f0;" onmousedown="selectInvSite(\'' + safeName + '\')" onmouseover="this.style.background=\'#f0f4f8\'" onmouseout="this.style.background=\'#fff\'">' + s.name + ' <span style="color:#888;font-size:11px;">[' + s.id + ']</span></div>';
+                const safeName = s.name.replace(/"/g, "&quot;");
+                return '<div style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid #f0f0f0;" data-sitename="' + safeName + '" onmousedown="selectInvSite(this)" onmouseover="this.style.background=\'#f0f4f8\'" onmouseout="this.style.background=\'#fff\'">' + s.name + ' <span style="color:#888;font-size:11px;">[' + s.id + ']</span></div>';
             }).join("");
             if (filtered.length === 0) dd.innerHTML = '<div style="padding:8px 12px;color:#888;font-size:13px;">No sites found</div>';
         }
 
-        function selectInvSite(name) {
-            name = name.replace(/&#39;/g, "'");
+        function selectInvSite(el) {
+            const name = el.getAttribute("data-sitename");
             document.getElementById("invIssueSiteSearch").value = name;
             document.getElementById("invIssueSite").value = name;
             document.getElementById("invSiteDropdown").style.display = "none";
