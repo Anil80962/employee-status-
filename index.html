@@ -950,10 +950,74 @@
                         <tbody id="invTableBody"><tr><td colspan="10" class="no-data">Loading inventory...</td></tr></tbody>
                     </table>
                 </div>
+
+                <!-- Transaction Log -->
+                <div style="margin-top:30px;">
+                    <div class="overview-header">
+                        <div class="section-title" style="margin:0;">Inventory Transactions</div>
+                        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                            <select id="invLogSiteFilter" onchange="renderInvLog()" style="padding:8px 12px;border:2px solid #2c5364;border-radius:8px;font-size:13px;font-weight:600;color:#2c5364;outline:none;">
+                                <option value="">All Sites</option>
+                            </select>
+                            <select id="invLogTypeFilter" onchange="renderInvLog()" style="padding:8px 12px;border:2px solid #2c5364;border-radius:8px;font-size:13px;font-weight:600;color:#2c5364;outline:none;">
+                                <option value="">All Types</option>
+                                <option value="Issue">Issued</option>
+                                <option value="Return">Returned</option>
+                            </select>
+                            <button onclick="downloadInvLog()" style="padding:8px 14px;background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">Download CSV</button>
+                        </div>
+                    </div>
+                    <div class="emp-list-table" style="margin-top:12px;">
+                        <table>
+                            <thead><tr>
+                                <th>#</th><th>Date</th><th>Item</th><th>Qty</th><th>Type</th><th>Site</th><th>Employee</th><th>Remarks</th>
+                            </tr></thead>
+                            <tbody id="invLogBody"><tr><td colspan="8" class="no-data">No transactions yet.</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
 
-    <!-- INVENTORY EDIT MODAL -->
+    <!-- ISSUE INVENTORY MODAL -->
+    <div class="modal-overlay" id="invIssueModal" style="display:none;">
+        <div class="modal-box" style="max-width:450px;">
+            <h3 id="invIssueTitle">Issue Item</h3>
+            <p style="font-size:13px;color:#888;margin-bottom:16px;" id="invIssueSubtitle"></p>
+            <input type="hidden" id="invIssueItemId">
+            <input type="hidden" id="invIssueItemName">
+            <input type="hidden" id="invIssueMaxQty">
+            <div style="margin-bottom:12px;">
+                <label style="font-size:13px;font-weight:600;color:#555;">Quantity *</label>
+                <input type="number" id="invIssueQty" min="1" placeholder="Enter quantity" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;margin-top:4px;">
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:13px;font-weight:600;color:#555;">Type *</label>
+                <select id="invIssueType" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;margin-top:4px;">
+                    <option value="Issue">Issue (Take Out)</option>
+                    <option value="Return">Return (Put Back)</option>
+                </select>
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:13px;font-weight:600;color:#555;">Site Name *</label>
+                <input type="text" id="invIssueSite" placeholder="e.g., BTM Old Office" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;margin-top:4px;">
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:13px;font-weight:600;color:#555;">Employee Name *</label>
+                <input type="text" id="invIssueEmp" placeholder="Who is taking/returning" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;margin-top:4px;">
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:13px;font-weight:600;color:#555;">Remarks</label>
+                <input type="text" id="invIssueRemarks" placeholder="Optional notes" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;margin-top:4px;">
+            </div>
+            <div class="modal-actions">
+                <button class="modal-cancel" onclick="document.getElementById('invIssueModal').style.display='none';">Cancel</button>
+                <button class="modal-confirm" style="background:linear-gradient(135deg,#e67e22,#f39c12);" onclick="submitInvIssue()">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- INVENTORY DELETE MODAL -->
     <div class="modal-overlay" id="invDeleteModal">
         <div class="modal-box">
             <h3>Delete Inventory Item</h3>
@@ -2679,6 +2743,7 @@
 
         // ===== INVENTORY MANAGEMENT =====
         let _inventoryData = [];
+        let _invLogData = [];
 
         async function loadInventory() {
             const body = document.getElementById("invTableBody");
@@ -2690,6 +2755,12 @@
             } catch(err) {
                 body.innerHTML = '<tr><td colspan="10" class="no-data">Failed to load: ' + err.message + '</td></tr>';
             }
+            // Load transaction log
+            try {
+                const logResult = await sheetFetch("action=getInventoryLog");
+                _invLogData = logResult.data || [];
+                renderInvLog();
+            } catch(e) {}
         }
 
         function renderInventoryTable() {
@@ -2739,7 +2810,8 @@
                     '<td>' + (item.location||'-') + '</td>' +
                     '<td style="max-width:150px;font-size:12px;color:#666;">' + (item.description||'-') + '</td>' +
                     '<td style="font-size:11px;color:#888;">' + (item.lastUpdated||'-') + '</td>' +
-                    '<td>' +
+                    '<td style="white-space:nowrap;">' +
+                        '<button onclick="openIssueModal(\'' + (item.itemId||'') + '\',\'' + (item.name||'').replace(/'/g,"\\'") + '\',' + qty + ')" style="font-size:11px;padding:4px 10px;margin-right:4px;background:linear-gradient(135deg,#e67e22,#f39c12);color:#fff;border:none;border-radius:4px;cursor:pointer;">Issue</button>' +
                         '<button class="edit-btn" onclick="editInventoryItem(' + i + ')" style="font-size:11px;padding:4px 10px;margin-right:4px;">Edit</button>' +
                         '<button class="delete-btn" onclick="promptDeleteInventory(\'' + (item.itemId||'') + '\',\'' + (item.name||'').replace(/'/g,"\\'") + '\')" style="font-size:11px;padding:4px 10px;">Del</button>' +
                     '</td></tr>';
@@ -2835,6 +2907,108 @@
                 hideLoading();
                 showToast("Failed: " + err.message, "error");
             }
+        }
+
+        // ===== INVENTORY TRANSACTIONS =====
+        function openIssueModal(itemId, itemName, maxQty) {
+            document.getElementById("invIssueItemId").value = itemId;
+            document.getElementById("invIssueItemName").value = itemName;
+            document.getElementById("invIssueMaxQty").value = maxQty;
+            document.getElementById("invIssueSubtitle").innerHTML = '<strong>' + itemName + '</strong> — Available: ' + maxQty;
+            document.getElementById("invIssueQty").value = "";
+            document.getElementById("invIssueQty").max = maxQty;
+            document.getElementById("invIssueType").value = "Issue";
+            document.getElementById("invIssueSite").value = "";
+            document.getElementById("invIssueEmp").value = "";
+            document.getElementById("invIssueRemarks").value = "";
+            document.getElementById("invIssueModal").style.display = "flex";
+        }
+
+        async function submitInvIssue() {
+            const itemId   = document.getElementById("invIssueItemId").value;
+            const itemName = document.getElementById("invIssueItemName").value;
+            const qty      = parseInt(document.getElementById("invIssueQty").value);
+            const type     = document.getElementById("invIssueType").value;
+            const site     = document.getElementById("invIssueSite").value.trim();
+            const emp      = document.getElementById("invIssueEmp").value.trim();
+            const remarks  = document.getElementById("invIssueRemarks").value.trim();
+            const maxQty   = parseInt(document.getElementById("invIssueMaxQty").value) || 0;
+
+            if (!qty || qty <= 0) { showToast("Enter a valid quantity.", "error"); return; }
+            if (type === "Issue" && qty > maxQty) { showToast("Cannot issue more than available (" + maxQty + ").", "error"); return; }
+            if (!site)   { showToast("Please enter site name.", "error"); return; }
+            if (!emp)    { showToast("Please enter employee name.", "error"); return; }
+
+            showLoading(type === "Issue" ? "Issuing item..." : "Returning item...");
+            try {
+                await formPost({
+                    action: "invTransaction",
+                    itemId: itemId,
+                    itemName: itemName,
+                    qty: String(qty),
+                    type: type,
+                    siteName: site,
+                    empName: emp,
+                    remarks: remarks,
+                    updatedBy: currentUser ? currentUser.displayName : "Admin"
+                });
+                hideLoading();
+                document.getElementById("invIssueModal").style.display = "none";
+                showToast(type === "Issue" ? qty + " " + itemName + " issued to " + site : qty + " " + itemName + " returned from " + site, "success");
+                loadInventory();
+            } catch(err) {
+                hideLoading();
+                showToast("Failed: " + err.message, "error");
+            }
+        }
+
+        function renderInvLog() {
+            const siteFilter = document.getElementById("invLogSiteFilter").value;
+            const typeFilter = document.getElementById("invLogTypeFilter").value;
+            let filtered = _invLogData.filter(r => {
+                const matchSite = !siteFilter || r.siteName === siteFilter;
+                const matchType = !typeFilter || r.type === typeFilter;
+                return matchSite && matchType;
+            });
+
+            // Populate site filter
+            const sites = new Set(_invLogData.map(r => r.siteName).filter(Boolean));
+            const siteSelect = document.getElementById("invLogSiteFilter");
+            const curSite = siteSelect.value;
+            siteSelect.innerHTML = '<option value="">All Sites</option>';
+            [...sites].sort().forEach(s => { siteSelect.innerHTML += '<option value="' + s + '"' + (s === curSite ? ' selected' : '') + '>' + s + '</option>'; });
+
+            const body = document.getElementById("invLogBody");
+            if (filtered.length === 0) {
+                body.innerHTML = '<tr><td colspan="8" class="no-data">No transactions found.</td></tr>';
+                return;
+            }
+            body.innerHTML = filtered.map((r, i) => {
+                const isIssue = r.type === "Issue";
+                const typeStyle = isIssue ? 'background:#fff3e0;color:#e65100;' : 'background:#e8f5e9;color:#2e7d32;';
+                return '<tr>' +
+                    '<td>' + (i+1) + '</td>' +
+                    '<td style="font-size:12px;">' + (r.date||'-') + '</td>' +
+                    '<td><strong>' + (r.itemName||'-') + '</strong></td>' +
+                    '<td style="font-weight:700;">' + (isIssue ? '-' : '+') + r.qty + '</td>' +
+                    '<td><span style="padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;' + typeStyle + '">' + r.type + '</span></td>' +
+                    '<td style="font-weight:600;color:#2c5364;">' + (r.siteName||'-') + '</td>' +
+                    '<td>' + (r.empName||'-') + '</td>' +
+                    '<td style="font-size:12px;color:#888;">' + (r.remarks||'-') + '</td>' +
+                '</tr>';
+            }).join("");
+        }
+
+        function downloadInvLog() {
+            if (_invLogData.length === 0) { showToast("No transactions to download.", "error"); return; }
+            const headers = ["Date","Item","Qty","Type","Site","Employee","Remarks"];
+            const rows = _invLogData.map(r => [r.date, '"'+(r.itemName||'')+'"', r.qty, r.type, '"'+(r.siteName||'')+'"', '"'+(r.empName||'')+'"', '"'+(r.remarks||'')+'"'].join(","));
+            const csv = [headers.join(","), ...rows].join("\n");
+            const blob = new Blob([csv], {type:"text/csv"});
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "inventory_transactions_" + new Date().toISOString().split("T")[0] + ".csv";
+            a.click();
         }
 
         // ===== SERVICE REPORT =====

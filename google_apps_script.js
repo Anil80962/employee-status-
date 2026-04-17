@@ -174,6 +174,34 @@ function doGet(e) {
     }
 
     // ===== INVENTORY =====
+    else if (action === "getInventoryLog") {
+      var sheet = ss.getSheetByName("InventoryLog");
+      if (!sheet) {
+        result = { status: "success", data: [] };
+      } else {
+        var data = sheet.getDataRange().getValues();
+        var logs = [];
+        for (var i = 1; i < data.length; i++) {
+          if (data[i][0]) {
+            logs.push({
+              logId: String(data[i][0]),
+              itemId: String(data[i][1]),
+              itemName: String(data[i][2]),
+              qty: String(data[i][3]),
+              type: String(data[i][4]),
+              siteName: String(data[i][5]),
+              empName: String(data[i][6]),
+              date: String(data[i][7]),
+              remarks: String(data[i][8] || "")
+            });
+          }
+        }
+        // Reverse so newest first
+        logs.reverse();
+        result = { status: "success", data: logs };
+      }
+    }
+
     else if (action === "getInventory") {
       var sheet = ss.getSheetByName("Inventory");
       if (!sheet) {
@@ -440,6 +468,46 @@ function doPost(e) {
             sheet.getRange(i + 1, 8).setValue(e.parameter.description || "");
             sheet.getRange(i + 1, 9).setValue(new Date().toLocaleString());
             sheet.getRange(i + 1, 10).setValue(e.parameter.updatedBy || "");
+            break;
+          }
+        }
+      }
+    }
+
+    else if (action === "invTransaction") {
+      // Log the transaction
+      var logSheet = ss.getSheetByName("InventoryLog");
+      if (!logSheet) {
+        logSheet = ss.insertSheet("InventoryLog");
+        logSheet.appendRow(["LogID", "ItemID", "ItemName", "Qty", "Type", "SiteName", "EmpName", "Date", "Remarks"]);
+      }
+      logSheet.appendRow([
+        "LOG-" + Date.now(),
+        e.parameter.itemId || "",
+        e.parameter.itemName || "",
+        e.parameter.qty || "0",
+        e.parameter.type || "Issue",
+        e.parameter.siteName || "",
+        e.parameter.empName || "",
+        new Date().toLocaleString(),
+        e.parameter.remarks || ""
+      ]);
+
+      // Update inventory quantity
+      var invSheet = ss.getSheetByName("Inventory");
+      if (invSheet) {
+        var data = invSheet.getDataRange().getValues();
+        var targetId = e.parameter.itemId || "";
+        var txQty = parseInt(e.parameter.qty) || 0;
+        var isIssue = (e.parameter.type || "Issue") === "Issue";
+        for (var i = data.length - 1; i >= 1; i--) {
+          if (String(data[i][0]) === targetId) {
+            var currentQty = parseInt(data[i][3]) || 0;
+            var newQty = isIssue ? (currentQty - txQty) : (currentQty + txQty);
+            if (newQty < 0) newQty = 0;
+            invSheet.getRange(i + 1, 4).setValue(newQty);
+            invSheet.getRange(i + 1, 9).setValue(new Date().toLocaleString());
+            invSheet.getRange(i + 1, 10).setValue(e.parameter.updatedBy || "");
             break;
           }
         }
