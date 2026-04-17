@@ -3035,14 +3035,20 @@
             body.innerHTML = filtered.map((r, i) => {
                 const isIssue = r.type === "Issue";
                 const typeStyle = isIssue ? 'background:#fff3e0;color:#e65100;' : 'background:#e8f5e9;color:#2e7d32;';
-                const purposeColor = r.purpose === 'Project' ? '#2c5364' : r.purpose === 'Service' ? '#8e44ad' : r.purpose === 'Testing' ? '#e67e22' : r.purpose === 'R&D' ? '#27ae60' : '#666';
+                const purposeMap = {
+                    'Project': { bg: '#e3f2fd', color: '#1565c0' },
+                    'Service': { bg: '#f3e5f5', color: '#7b1fa2' },
+                    'Testing': { bg: '#fff3e0', color: '#e65100' },
+                    'R&D':     { bg: '#e8f5e9', color: '#2e7d32' }
+                };
+                const pStyle = purposeMap[r.purpose] || { bg: '#f5f5f5', color: '#999' };
                 return '<tr>' +
                     '<td>' + (i+1) + '</td>' +
                     '<td style="font-size:12px;">' + (r.date||'-') + '</td>' +
                     '<td><strong>' + (r.itemName||'-') + '</strong></td>' +
                     '<td style="font-weight:700;">' + (isIssue ? '-' : '+') + r.qty + '</td>' +
                     '<td><span style="padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;' + typeStyle + '">' + r.type + '</span></td>' +
-                    '<td><span style="padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:#f0f4f8;color:' + purposeColor + ';">' + (r.purpose||'-') + '</span></td>' +
+                    '<td><span style="padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700;background:' + pStyle.bg + ';color:' + pStyle.color + ';">' + (r.purpose||'-') + '</span></td>' +
                     '<td style="font-weight:600;color:#2c5364;">' + (r.siteName||'-') + '</td>' +
                     '<td>' + (r.empName||'-') + '</td>' +
                     '<td style="font-size:12px;color:#888;">' + (r.remarks||'-') + '</td>' +
@@ -3091,6 +3097,7 @@
                     '<td style="padding:6px 10px;border:1px solid #ddd;font-weight:600;">' + (r.itemName||'-') + '</td>' +
                     '<td style="padding:6px 10px;border:1px solid #ddd;text-align:center;font-weight:700;color:' + (isIssue ? '#e74c3c' : '#27ae60') + ';">' + (isIssue ? '-' : '+') + r.qty + '</td>' +
                     '<td style="padding:6px 10px;border:1px solid #ddd;text-align:center;">' + r.type + '</td>' +
+                    '<td style="padding:6px 10px;border:1px solid #ddd;text-align:center;font-weight:600;">' + (r.purpose||'-') + '</td>' +
                     '<td style="padding:6px 10px;border:1px solid #ddd;font-weight:600;">' + (r.siteName||'-') + '</td>' +
                     '<td style="padding:6px 10px;border:1px solid #ddd;">' + (r.empName||'-') + '</td>' +
                     '<td style="padding:6px 10px;border:1px solid #ddd;font-size:12px;color:#666;">' + (r.remarks||'-') + '</td></tr>';
@@ -3123,6 +3130,7 @@
                         <th style="padding:8px 10px;border:1px solid #1a3a5c;">Item</th>
                         <th style="padding:8px 10px;border:1px solid #1a3a5c;">Qty</th>
                         <th style="padding:8px 10px;border:1px solid #1a3a5c;">Type</th>
+                        <th style="padding:8px 10px;border:1px solid #1a3a5c;">Purpose</th>
                         <th style="padding:8px 10px;border:1px solid #1a3a5c;">Site</th>
                         <th style="padding:8px 10px;border:1px solid #1a3a5c;">Employee</th>
                         <th style="padding:8px 10px;border:1px solid #1a3a5c;">Reason</th>
