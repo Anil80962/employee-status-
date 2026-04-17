@@ -964,7 +964,8 @@
                                 <option value="Issue">Issued</option>
                                 <option value="Return">Returned</option>
                             </select>
-                            <button onclick="downloadInvLog()" style="padding:8px 14px;background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">Download CSV</button>
+                            <button onclick="previewInvLog()" style="padding:8px 14px;background:linear-gradient(135deg,#2c5364,#1a3a5c);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">Preview / Print</button>
+                        <button onclick="downloadInvLog()" style="padding:8px 14px;background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">Download CSV</button>
                         </div>
                     </div>
                     <div class="emp-list-table" style="margin-top:12px;">
@@ -3003,6 +3004,89 @@
                     '<td style="font-size:12px;color:#888;">' + (r.remarks||'-') + '</td>' +
                 '</tr>';
             }).join("");
+        }
+
+        function previewInvLog() {
+            if (_invLogData.length === 0) { showToast("No transactions to preview.", "error"); return; }
+
+            const siteFilter = document.getElementById("invLogSiteFilter").value;
+            const typeFilter = document.getElementById("invLogTypeFilter").value;
+            const filtered = _invLogData.filter(r => {
+                return (!siteFilter || r.siteName === siteFilter) && (!typeFilter || r.type === typeFilter);
+            });
+
+            // Site-wise summary
+            const siteSummary = {};
+            filtered.forEach(r => {
+                const site = r.siteName || "Unknown";
+                if (!siteSummary[site]) siteSummary[site] = { issued: 0, returned: 0, items: {} };
+                const qty = parseInt(r.qty) || 0;
+                if (r.type === "Issue") {
+                    siteSummary[site].issued += qty;
+                    siteSummary[site].items[r.itemName] = (siteSummary[site].items[r.itemName] || 0) + qty;
+                } else {
+                    siteSummary[site].returned += qty;
+                    siteSummary[site].items[r.itemName] = (siteSummary[site].items[r.itemName] || 0) - qty;
+                }
+            });
+
+            let summaryHTML = '';
+            for (const site in siteSummary) {
+                const s = siteSummary[site];
+                const itemLines = Object.entries(s.items).map(([name, qty]) => '<tr><td style="padding:4px 12px;border:1px solid #ddd;">' + name + '</td><td style="padding:4px 12px;border:1px solid #ddd;text-align:center;font-weight:600;">' + qty + '</td></tr>').join('');
+                summaryHTML += '<div style="margin-bottom:16px;"><h4 style="color:#2c5364;margin-bottom:6px;">📍 ' + site + ' <span style="font-size:12px;font-weight:400;color:#888;">(Issued: ' + s.issued + ' | Returned: ' + s.returned + ')</span></h4>' +
+                    '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f0f4f8;"><th style="padding:4px 12px;border:1px solid #ddd;text-align:left;">Item</th><th style="padding:4px 12px;border:1px solid #ddd;text-align:center;">Net Qty at Site</th></tr></thead><tbody>' + itemLines + '</tbody></table></div>';
+            }
+
+            // Transaction table rows
+            const rows = filtered.map((r, i) => {
+                const isIssue = r.type === "Issue";
+                return '<tr>' +
+                    '<td style="padding:6px 10px;border:1px solid #ddd;text-align:center;">' + (i+1) + '</td>' +
+                    '<td style="padding:6px 10px;border:1px solid #ddd;font-size:12px;">' + (r.date||'-') + '</td>' +
+                    '<td style="padding:6px 10px;border:1px solid #ddd;font-weight:600;">' + (r.itemName||'-') + '</td>' +
+                    '<td style="padding:6px 10px;border:1px solid #ddd;text-align:center;font-weight:700;color:' + (isIssue ? '#e74c3c' : '#27ae60') + ';">' + (isIssue ? '-' : '+') + r.qty + '</td>' +
+                    '<td style="padding:6px 10px;border:1px solid #ddd;text-align:center;">' + r.type + '</td>' +
+                    '<td style="padding:6px 10px;border:1px solid #ddd;font-weight:600;">' + (r.siteName||'-') + '</td>' +
+                    '<td style="padding:6px 10px;border:1px solid #ddd;">' + (r.empName||'-') + '</td>' +
+                    '<td style="padding:6px 10px;border:1px solid #ddd;font-size:12px;color:#666;">' + (r.remarks||'-') + '</td></tr>';
+            }).join('');
+
+            const filterText = (siteFilter ? 'Site: ' + siteFilter : 'All Sites') + ' | ' + (typeFilter ? typeFilter + ' only' : 'All Types');
+            const win = window.open('', '_blank');
+            win.document.write(`<!DOCTYPE html><html><head><title>Inventory Transactions Report</title>
+                <style>
+                    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:30px;color:#1a1a2e;}
+                    @media print { .no-print{display:none!important;} body{padding:10px;} }
+                </style></head><body>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+                    <div>
+                        <h2 style="margin:0;color:#1a3a5c;">Fluxgen Operations</h2>
+                        <h3 style="margin:4px 0 0;color:#2c5364;">Inventory Transactions Report</h3>
+                        <p style="color:#888;font-size:13px;margin:4px 0 0;">${filterText} — Generated: ${new Date().toLocaleString()}</p>
+                    </div>
+                    <button class="no-print" onclick="window.print()" style="padding:10px 24px;background:#2c5364;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">🖨 Print</button>
+                </div>
+                <hr style="border:1px solid #e0e0e0;margin-bottom:20px;">
+                <h3 style="color:#1a3a5c;margin-bottom:12px;">Site-wise Summary</h3>
+                ${summaryHTML}
+                <hr style="border:1px solid #e0e0e0;margin:20px 0;">
+                <h3 style="color:#1a3a5c;margin-bottom:12px;">All Transactions (${filtered.length})</h3>
+                <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                    <thead><tr style="background:#2c5364;color:#fff;">
+                        <th style="padding:8px 10px;border:1px solid #1a3a5c;">#</th>
+                        <th style="padding:8px 10px;border:1px solid #1a3a5c;">Date</th>
+                        <th style="padding:8px 10px;border:1px solid #1a3a5c;">Item</th>
+                        <th style="padding:8px 10px;border:1px solid #1a3a5c;">Qty</th>
+                        <th style="padding:8px 10px;border:1px solid #1a3a5c;">Type</th>
+                        <th style="padding:8px 10px;border:1px solid #1a3a5c;">Site</th>
+                        <th style="padding:8px 10px;border:1px solid #1a3a5c;">Employee</th>
+                        <th style="padding:8px 10px;border:1px solid #1a3a5c;">Reason</th>
+                    </tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </body></html>`);
+            win.document.close();
         }
 
         function downloadInvLog() {
