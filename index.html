@@ -1488,7 +1488,7 @@
             const card = document.createElement("div");
             card.className = cardClass;
             const statusInfo = isAssigned && info
-                ? `<div style="font-size:11px;color:${infoColor};margin-top:2px;">${info.siteName ? info.siteName + ' - ' : ''}${info.status}</div>`
+                ? `<div style="font-size:11px;color:${infoColor};margin-top:2px;">${(!isLeave && info.siteName) ? info.siteName + ' - ' : ''}${info.status}</div>`
                 : "";
             card.innerHTML = `
                 <div class="emp-avatar">${initials}</div>
