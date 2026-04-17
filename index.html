@@ -956,6 +956,10 @@
                     <div class="overview-header">
                         <div class="section-title" style="margin:0;">Inventory Transactions</div>
                         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                            <label style="font-weight:600;color:#555;font-size:12px;">From:</label>
+                            <input type="date" id="invLogFromDate" onchange="renderInvLog()" style="padding:6px 10px;border:2px solid #2c5364;border-radius:8px;font-size:13px;font-weight:600;color:#2c5364;outline:none;">
+                            <label style="font-weight:600;color:#555;font-size:12px;">To:</label>
+                            <input type="date" id="invLogToDate" onchange="renderInvLog()" style="padding:6px 10px;border:2px solid #2c5364;border-radius:8px;font-size:13px;font-weight:600;color:#2c5364;outline:none;">
                             <select id="invLogSiteFilter" onchange="renderInvLog()" style="padding:8px 12px;border:2px solid #2c5364;border-radius:8px;font-size:13px;font-weight:600;color:#2c5364;outline:none;">
                                 <option value="">All Sites</option>
                             </select>
@@ -965,7 +969,7 @@
                                 <option value="Return">Returned</option>
                             </select>
                             <button onclick="previewInvLog()" style="padding:8px 14px;background:linear-gradient(135deg,#2c5364,#1a3a5c);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">Preview / Print</button>
-                        <button onclick="downloadInvLog()" style="padding:8px 14px;background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">Download CSV</button>
+                            <button onclick="downloadInvLog()" style="padding:8px 14px;background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">Download CSV</button>
                         </div>
                     </div>
                     <div class="emp-list-table" style="margin-top:12px;">
@@ -3014,10 +3018,22 @@
         function renderInvLog() {
             const siteFilter = document.getElementById("invLogSiteFilter").value;
             const typeFilter = document.getElementById("invLogTypeFilter").value;
+            const fromDate   = document.getElementById("invLogFromDate").value;
+            const toDate     = document.getElementById("invLogToDate").value;
             let filtered = _invLogData.filter(r => {
                 const matchSite = !siteFilter || r.siteName === siteFilter;
                 const matchType = !typeFilter || r.type === typeFilter;
-                return matchSite && matchType;
+                // Date filter — parse the date string to YYYY-MM-DD for comparison
+                let matchDate = true;
+                if (fromDate || toDate) {
+                    const d = new Date(r.date);
+                    if (!isNaN(d.getTime())) {
+                        const rDate = d.toISOString().split("T")[0];
+                        if (fromDate && rDate < fromDate) matchDate = false;
+                        if (toDate && rDate > toDate) matchDate = false;
+                    }
+                }
+                return matchSite && matchType && matchDate;
             });
 
             // Populate site filter
