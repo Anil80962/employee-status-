@@ -919,7 +919,7 @@
                 </div>
 
                 <!-- Add Item Form -->
-                <div class="add-emp-form" style="margin-top:20px;">
+                <div class="add-emp-form inv-admin-only" style="margin-top:20px;">
                     <h3 id="invFormTitle">Add New Item</h3>
                     <input type="hidden" id="invEditId">
                     <div class="form-row">
@@ -979,40 +979,41 @@
             </div>
         </div>
 
-    <!-- ISSUE INVENTORY MODAL -->
+    <!-- TAKE INVENTORY MODAL -->
     <div class="modal-overlay" id="invIssueModal" style="display:none;">
         <div class="modal-box" style="max-width:450px;">
-            <h3 id="invIssueTitle">Issue Item</h3>
+            <h3 id="invIssueTitle">Take Inventory</h3>
             <p style="font-size:13px;color:#888;margin-bottom:16px;" id="invIssueSubtitle"></p>
             <input type="hidden" id="invIssueItemId">
             <input type="hidden" id="invIssueItemName">
             <input type="hidden" id="invIssueMaxQty">
             <div style="margin-bottom:12px;">
-                <label style="font-size:13px;font-weight:600;color:#555;">Quantity *</label>
+                <label style="font-size:13px;font-weight:600;color:#555;">Employee Name *</label>
+                <input type="text" id="invIssueEmp" placeholder="Your name" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;margin-top:4px;">
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:13px;font-weight:600;color:#555;">Site Name (where you are taking it) *</label>
+                <input type="text" id="invIssueSite" placeholder="e.g., BTM Old Office" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;margin-top:4px;">
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:13px;font-weight:600;color:#555;">How many are you taking? *</label>
                 <input type="number" id="invIssueQty" min="1" placeholder="Enter quantity" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;margin-top:4px;">
+                <span style="font-size:11px;color:#888;" id="invIssueAvail"></span>
             </div>
             <div style="margin-bottom:12px;">
                 <label style="font-size:13px;font-weight:600;color:#555;">Type *</label>
                 <select id="invIssueType" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;margin-top:4px;">
-                    <option value="Issue">Issue (Take Out)</option>
-                    <option value="Return">Return (Put Back)</option>
+                    <option value="Issue">Taking Out</option>
+                    <option value="Return">Returning Back</option>
                 </select>
             </div>
             <div style="margin-bottom:12px;">
-                <label style="font-size:13px;font-weight:600;color:#555;">Site Name *</label>
-                <input type="text" id="invIssueSite" placeholder="e.g., BTM Old Office" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;margin-top:4px;">
-            </div>
-            <div style="margin-bottom:12px;">
-                <label style="font-size:13px;font-weight:600;color:#555;">Employee Name *</label>
-                <input type="text" id="invIssueEmp" placeholder="Who is taking/returning" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;margin-top:4px;">
-            </div>
-            <div style="margin-bottom:12px;">
-                <label style="font-size:13px;font-weight:600;color:#555;">Remarks</label>
-                <input type="text" id="invIssueRemarks" placeholder="Optional notes" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;margin-top:4px;">
+                <label style="font-size:13px;font-weight:600;color:#555;">Reason *</label>
+                <textarea id="invIssueRemarks" rows="2" placeholder="Why are you taking this? e.g., For installation at site" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;margin-top:4px;font-family:inherit;resize:vertical;"></textarea>
             </div>
             <div class="modal-actions">
                 <button class="modal-cancel" onclick="document.getElementById('invIssueModal').style.display='none';">Cancel</button>
-                <button class="modal-confirm" style="background:linear-gradient(135deg,#e67e22,#f39c12);" onclick="submitInvIssue()">Confirm</button>
+                <button class="modal-confirm" style="background:linear-gradient(135deg,#e67e22,#f39c12);" onclick="submitInvIssue()">Submit</button>
             </div>
         </div>
     </div>
@@ -1293,7 +1294,10 @@
             document.getElementById("downloadTab").style.display = (isAdmin || isManager) ? "inline-block" : "none";
             document.getElementById("manageTab").style.display = isAdmin ? "inline-block" : "none";
             document.getElementById("usersTab").style.display = isSuperAdmin ? "inline-block" : "none";
-            document.getElementById("inventoryTab").style.display = isAdmin ? "inline-block" : "none";
+            document.getElementById("inventoryTab").style.display = "inline-block";
+            // Hide admin-only inventory controls for non-admins
+            const invAdminEls = document.querySelectorAll(".inv-admin-only");
+            invAdminEls.forEach(el => el.style.display = isAdmin ? "" : "none");
 
             // Efficiency section visibility (admin + manager only)
             const effSection = document.getElementById("efficiencySection");
@@ -2811,9 +2815,9 @@
                     '<td style="max-width:150px;font-size:12px;color:#666;">' + (item.description||'-') + '</td>' +
                     '<td style="font-size:11px;color:#888;">' + (item.lastUpdated||'-') + '</td>' +
                     '<td style="white-space:nowrap;">' +
-                        '<button onclick="openIssueModal(\'' + (item.itemId||'') + '\',\'' + (item.name||'').replace(/'/g,"\\'") + '\',' + qty + ')" style="font-size:11px;padding:4px 10px;margin-right:4px;background:linear-gradient(135deg,#e67e22,#f39c12);color:#fff;border:none;border-radius:4px;cursor:pointer;">Issue</button>' +
-                        '<button class="edit-btn" onclick="editInventoryItem(' + i + ')" style="font-size:11px;padding:4px 10px;margin-right:4px;">Edit</button>' +
-                        '<button class="delete-btn" onclick="promptDeleteInventory(\'' + (item.itemId||'') + '\',\'' + (item.name||'').replace(/'/g,"\\'") + '\')" style="font-size:11px;padding:4px 10px;">Del</button>' +
+                        '<button onclick="openIssueModal(\'' + (item.itemId||'') + '\',\'' + (item.name||'').replace(/'/g,"\\'") + '\',' + qty + ',\'' + (item.unit||'pcs') + '\')" style="font-size:11px;padding:4px 10px;margin-right:4px;background:linear-gradient(135deg,#e67e22,#f39c12);color:#fff;border:none;border-radius:4px;cursor:pointer;">Take</button>' +
+                        (currentUser && currentUser.role === "admin" ? '<button class="edit-btn" onclick="editInventoryItem(' + i + ')" style="font-size:11px;padding:4px 10px;margin-right:4px;">Edit</button>' +
+                        '<button class="delete-btn" onclick="promptDeleteInventory(\'' + (item.itemId||'') + '\',\'' + (item.name||'').replace(/'/g,"\\'") + '\')" style="font-size:11px;padding:4px 10px;">Del</button>' : '') +
                     '</td></tr>';
             }).join("");
         }
@@ -2910,16 +2914,17 @@
         }
 
         // ===== INVENTORY TRANSACTIONS =====
-        function openIssueModal(itemId, itemName, maxQty) {
+        function openIssueModal(itemId, itemName, maxQty, unit) {
             document.getElementById("invIssueItemId").value = itemId;
             document.getElementById("invIssueItemName").value = itemName;
             document.getElementById("invIssueMaxQty").value = maxQty;
-            document.getElementById("invIssueSubtitle").innerHTML = '<strong>' + itemName + '</strong> — Available: ' + maxQty;
+            document.getElementById("invIssueSubtitle").innerHTML = '<strong>' + itemName + '</strong> — Available: <strong>' + maxQty + ' ' + (unit||'pcs') + '</strong>';
+            document.getElementById("invIssueAvail").textContent = "Available: " + maxQty + " " + (unit||'pcs');
             document.getElementById("invIssueQty").value = "";
             document.getElementById("invIssueQty").max = maxQty;
             document.getElementById("invIssueType").value = "Issue";
             document.getElementById("invIssueSite").value = "";
-            document.getElementById("invIssueEmp").value = "";
+            document.getElementById("invIssueEmp").value = currentUser ? currentUser.displayName : "";
             document.getElementById("invIssueRemarks").value = "";
             document.getElementById("invIssueModal").style.display = "flex";
         }
@@ -2934,10 +2939,11 @@
             const remarks  = document.getElementById("invIssueRemarks").value.trim();
             const maxQty   = parseInt(document.getElementById("invIssueMaxQty").value) || 0;
 
+            if (!emp)    { showToast("Please enter your name.", "error"); return; }
+            if (!site)   { showToast("Please enter the site name.", "error"); return; }
             if (!qty || qty <= 0) { showToast("Enter a valid quantity.", "error"); return; }
-            if (type === "Issue" && qty > maxQty) { showToast("Cannot issue more than available (" + maxQty + ").", "error"); return; }
-            if (!site)   { showToast("Please enter site name.", "error"); return; }
-            if (!emp)    { showToast("Please enter employee name.", "error"); return; }
+            if (type === "Issue" && qty > maxQty) { showToast("Cannot take more than available (" + maxQty + ").", "error"); return; }
+            if (!remarks) { showToast("Please enter the reason.", "error"); return; }
 
             showLoading(type === "Issue" ? "Issuing item..." : "Returning item...");
             try {
