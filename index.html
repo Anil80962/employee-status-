@@ -971,9 +971,9 @@
                     <div class="emp-list-table" style="margin-top:12px;">
                         <table>
                             <thead><tr>
-                                <th>#</th><th>Date</th><th>Item</th><th>Qty</th><th>Type</th><th>Site</th><th>Employee</th><th>Remarks</th>
+                                <th>#</th><th>Date</th><th>Item</th><th>Qty</th><th>Type</th><th>Purpose</th><th>Site</th><th>Employee</th><th>Reason</th>
                             </tr></thead>
-                            <tbody id="invLogBody"><tr><td colspan="8" class="no-data">No transactions yet.</td></tr></tbody>
+                            <tbody id="invLogBody"><tr><td colspan="9" class="no-data">No transactions yet.</td></tr></tbody>
                         </table>
                     </div>
                 </div>
@@ -997,6 +997,15 @@
                 <input type="text" id="invIssueSiteSearch" placeholder="Search site name..." autocomplete="off" oninput="filterInvSites()" onfocus="filterInvSites();document.getElementById('invSiteDropdown').style.display='block';" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;margin-top:4px;">
                 <input type="hidden" id="invIssueSite">
                 <div id="invSiteDropdown" style="display:none;position:absolute;left:0;right:0;top:100%;max-height:200px;overflow-y:auto;background:#fff;border:2px solid #2c5364;border-radius:8px;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,0.15);"></div>
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:13px;font-weight:600;color:#555;">Purpose *</label>
+                <select id="invIssuePurpose" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;margin-top:4px;">
+                    <option value="Project">Project</option>
+                    <option value="Service">Service</option>
+                    <option value="Testing">Testing</option>
+                    <option value="R&D">R&D</option>
+                </select>
             </div>
             <div style="margin-bottom:12px;">
                 <label style="font-size:13px;font-weight:600;color:#555;">How many are you taking? *</label>
@@ -2951,6 +2960,7 @@
             document.getElementById("invIssueAvail").textContent = "Available: " + maxQty + " " + (unit||'pcs');
             document.getElementById("invIssueQty").value = "";
             document.getElementById("invIssueQty").max = maxQty;
+            document.getElementById("invIssuePurpose").value = "Project";
             document.getElementById("invIssueType").value = "Issue";
             document.getElementById("invIssueSite").value = "";
             document.getElementById("invIssueSiteSearch").value = "";
@@ -2965,6 +2975,7 @@
             const itemName = document.getElementById("invIssueItemName").value;
             const qty      = parseInt(document.getElementById("invIssueQty").value);
             const type     = document.getElementById("invIssueType").value;
+            const purpose  = document.getElementById("invIssuePurpose").value;
             const site     = document.getElementById("invIssueSite").value.trim() || document.getElementById("invIssueSiteSearch").value.trim();
             const emp      = document.getElementById("invIssueEmp").value.trim();
             const remarks  = document.getElementById("invIssueRemarks").value.trim();
@@ -2986,6 +2997,7 @@
                     type: type,
                     siteName: site,
                     empName: emp,
+                    purpose: purpose,
                     remarks: remarks,
                     updatedBy: currentUser ? currentUser.displayName : "Admin"
                 });
@@ -3017,18 +3029,20 @@
 
             const body = document.getElementById("invLogBody");
             if (filtered.length === 0) {
-                body.innerHTML = '<tr><td colspan="8" class="no-data">No transactions found.</td></tr>';
+                body.innerHTML = '<tr><td colspan="9" class="no-data">No transactions found.</td></tr>';
                 return;
             }
             body.innerHTML = filtered.map((r, i) => {
                 const isIssue = r.type === "Issue";
                 const typeStyle = isIssue ? 'background:#fff3e0;color:#e65100;' : 'background:#e8f5e9;color:#2e7d32;';
+                const purposeColor = r.purpose === 'Project' ? '#2c5364' : r.purpose === 'Service' ? '#8e44ad' : r.purpose === 'Testing' ? '#e67e22' : r.purpose === 'R&D' ? '#27ae60' : '#666';
                 return '<tr>' +
                     '<td>' + (i+1) + '</td>' +
                     '<td style="font-size:12px;">' + (r.date||'-') + '</td>' +
                     '<td><strong>' + (r.itemName||'-') + '</strong></td>' +
                     '<td style="font-weight:700;">' + (isIssue ? '-' : '+') + r.qty + '</td>' +
                     '<td><span style="padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;' + typeStyle + '">' + r.type + '</span></td>' +
+                    '<td><span style="padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:#f0f4f8;color:' + purposeColor + ';">' + (r.purpose||'-') + '</span></td>' +
                     '<td style="font-weight:600;color:#2c5364;">' + (r.siteName||'-') + '</td>' +
                     '<td>' + (r.empName||'-') + '</td>' +
                     '<td style="font-size:12px;color:#888;">' + (r.remarks||'-') + '</td>' +
@@ -3121,8 +3135,8 @@
 
         function downloadInvLog() {
             if (_invLogData.length === 0) { showToast("No transactions to download.", "error"); return; }
-            const headers = ["Date","Item","Qty","Type","Site","Employee","Remarks"];
-            const rows = _invLogData.map(r => [r.date, '"'+(r.itemName||'')+'"', r.qty, r.type, '"'+(r.siteName||'')+'"', '"'+(r.empName||'')+'"', '"'+(r.remarks||'')+'"'].join(","));
+            const headers = ["Date","Item","Qty","Type","Purpose","Site","Employee","Reason"];
+            const rows = _invLogData.map(r => [r.date, '"'+(r.itemName||'')+'"', r.qty, r.type, r.purpose||'', '"'+(r.siteName||'')+'"', '"'+(r.empName||'')+'"', '"'+(r.remarks||'')+'"'].join(","));
             const csv = [headers.join(","), ...rows].join("\n");
             const blob = new Blob([csv], {type:"text/csv"});
             const a = document.createElement("a");

@@ -192,7 +192,8 @@ function doGet(e) {
               siteName: String(data[i][5]),
               empName: String(data[i][6]),
               date: String(data[i][7]),
-              remarks: String(data[i][8] || "")
+              remarks: String(data[i][8] || ""),
+              purpose: String(data[i][9] || "")
             });
           }
         }
@@ -479,7 +480,7 @@ function doPost(e) {
       var logSheet = ss.getSheetByName("InventoryLog");
       if (!logSheet) {
         logSheet = ss.insertSheet("InventoryLog");
-        logSheet.appendRow(["LogID", "ItemID", "ItemName", "Qty", "Type", "SiteName", "EmpName", "Date", "Remarks"]);
+        logSheet.appendRow(["LogID", "ItemID", "ItemName", "Qty", "Type", "SiteName", "EmpName", "Date", "Remarks", "Purpose"]);
       }
       logSheet.appendRow([
         "LOG-" + Date.now(),
@@ -490,7 +491,8 @@ function doPost(e) {
         e.parameter.siteName || "",
         e.parameter.empName || "",
         new Date().toLocaleString(),
-        e.parameter.remarks || ""
+        e.parameter.remarks || "",
+        e.parameter.purpose || ""
       ]);
 
       // Update inventory quantity
