@@ -941,7 +941,7 @@
                         <div class="form-group" style="flex:2;"><label>Description</label><input type="text" id="invDesc" placeholder="Optional notes"></div>
                     </div>
                     <div style="display:flex;gap:10px;margin-top:10px;">
-                        <button class="add-btn" id="invSubmitBtn" onclick="saveInventoryItem()">+ Add Item</button>
+                        <button class="add-btn" id="invSubmitBtn" onclick="saveInventoryItem()">+ Add Stock</button>
                         <button class="refresh-btn" id="invCancelBtn" onclick="resetInventoryForm()" style="display:none;">Cancel</button>
                     </div>
                 </div>
@@ -1320,7 +1320,13 @@
             document.getElementById("inventoryTab").style.display = "inline-block";
             // Hide admin-only inventory controls for non-admins
             const invAdminEls = document.querySelectorAll(".inv-admin-only");
-            invAdminEls.forEach(el => el.style.display = isAdmin ? "" : "none");
+            invAdminEls.forEach(el => {
+                if (el.id === "invAddForm") {
+                    el.style.display = isAdmin ? "none" : "none"; // always hidden by default, toggled by button
+                } else {
+                    el.style.display = isAdmin ? "" : "none";
+                }
+            });
 
             // Efficiency section visibility (admin + manager only)
             const effSection = document.getElementById("efficiencySection");
@@ -2870,7 +2876,7 @@
             document.getElementById("invLocation").value = "";
             document.getElementById("invDesc").value = "";
             document.getElementById("invFormTitle").textContent = "Add Stock";
-            document.getElementById("invSubmitBtn").textContent = "+ Add Item";
+            document.getElementById("invSubmitBtn").textContent = "+ Add Stock";
             document.getElementById("invCancelBtn").style.display = "none";
         }
 
