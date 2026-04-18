@@ -960,9 +960,11 @@
                             <input type="date" id="invLogFromDate" onchange="renderInvLog()" style="padding:6px 10px;border:2px solid #2c5364;border-radius:8px;font-size:13px;font-weight:600;color:#2c5364;outline:none;">
                             <label style="font-weight:600;color:#555;font-size:12px;">To:</label>
                             <input type="date" id="invLogToDate" onchange="renderInvLog()" style="padding:6px 10px;border:2px solid #2c5364;border-radius:8px;font-size:13px;font-weight:600;color:#2c5364;outline:none;">
-                            <select id="invLogSiteFilter" onchange="renderInvLog()" style="padding:8px 12px;border:2px solid #2c5364;border-radius:8px;font-size:13px;font-weight:600;color:#2c5364;outline:none;">
-                                <option value="">All Sites</option>
-                            </select>
+                            <div style="position:relative;display:inline-block;">
+                                <input type="text" id="invLogSiteSearch" placeholder="All Sites" autocomplete="off" oninput="filterInvLogSites()" onfocus="filterInvLogSites();document.getElementById('invLogSiteDD').style.display='block';" style="padding:8px 12px;border:2px solid #2c5364;border-radius:8px;font-size:13px;font-weight:600;color:#2c5364;outline:none;width:160px;">
+                                <input type="hidden" id="invLogSiteFilter">
+                                <div id="invLogSiteDD" style="display:none;position:absolute;left:0;right:0;top:100%;max-height:220px;overflow-y:auto;background:#fff;border:2px solid #2c5364;border-radius:8px;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,0.15);min-width:200px;"></div>
+                            </div>
                             <select id="invLogTypeFilter" onchange="renderInvLog()" style="padding:8px 12px;border:2px solid #2c5364;border-radius:8px;font-size:13px;font-weight:600;color:#2c5364;outline:none;">
                                 <option value="">All Types</option>
                                 <option value="Issue">Issued</option>
@@ -2930,6 +2932,37 @@
         }
 
         // ===== INVENTORY TRANSACTIONS =====
+        // Site search for inventory LOG filter
+        function filterInvLogSites() {
+            const query = document.getElementById("invLogSiteSearch").value.toLowerCase();
+            const dd = document.getElementById("invLogSiteDD");
+            dd.style.display = "block";
+            const sites = (window._invLogSites || []);
+            const filtered = query ? sites.filter(s => s.toLowerCase().includes(query)) : sites;
+            let html = '<div style="padding:8px 12px;cursor:pointer;font-size:13px;font-weight:600;color:#2c5364;border-bottom:1px solid #f0f0f0;" data-site="" onmousedown="selectInvLogSite(this)" onmouseover="this.style.background=\'#f0f4f8\'" onmouseout="this.style.background=\'#fff\'">All Sites</div>';
+            html += filtered.map(s => {
+                const safe = s.replace(/"/g, "&quot;");
+                return '<div style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid #f0f0f0;" data-site="' + safe + '" onmousedown="selectInvLogSite(this)" onmouseover="this.style.background=\'#f0f4f8\'" onmouseout="this.style.background=\'#fff\'">' + s + '</div>';
+            }).join("");
+            if (filtered.length === 0 && query) html += '<div style="padding:8px 12px;color:#888;font-size:13px;">No matching sites</div>';
+            dd.innerHTML = html;
+        }
+
+        function selectInvLogSite(el) {
+            const site = el.getAttribute("data-site");
+            document.getElementById("invLogSiteSearch").value = site || "";
+            document.getElementById("invLogSiteSearch").placeholder = site ? site : "All Sites";
+            document.getElementById("invLogSiteFilter").value = site;
+            document.getElementById("invLogSiteDD").style.display = "none";
+            renderInvLog();
+        }
+
+        document.addEventListener("click", function(e) {
+            const dd = document.getElementById("invLogSiteDD");
+            const search = document.getElementById("invLogSiteSearch");
+            if (dd && !dd.contains(e.target) && e.target !== search) dd.style.display = "none";
+        });
+
         // Site search for inventory issue modal
         function filterInvSites() {
             const query = document.getElementById("invIssueSiteSearch").value.toLowerCase();
@@ -3036,12 +3069,8 @@
                 return matchSite && matchType && matchDate;
             });
 
-            // Populate site filter
-            const sites = new Set(_invLogData.map(r => r.siteName).filter(Boolean));
-            const siteSelect = document.getElementById("invLogSiteFilter");
-            const curSite = siteSelect.value;
-            siteSelect.innerHTML = '<option value="">All Sites</option>';
-            [...sites].sort().forEach(s => { siteSelect.innerHTML += '<option value="' + s + '"' + (s === curSite ? ' selected' : '') + '>' + s + '</option>'; });
+            // Store sites for dropdown
+            window._invLogSites = [...new Set(_invLogData.map(r => r.siteName).filter(Boolean))].sort();
 
             const body = document.getElementById("invLogBody");
             if (filtered.length === 0) {
