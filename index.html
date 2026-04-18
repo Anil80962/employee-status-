@@ -296,6 +296,7 @@
         .rpt-modal input:focus { border-color:#2c5364; }
         .rpt-btn-row { display:flex;gap:10px;margin-top:18px; }
     </style>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
 <body>
 
@@ -939,6 +940,39 @@
                     <div class="form-row">
                         <div class="form-group"><label>Location / Store</label><input type="text" id="invLocation" placeholder="e.g., Warehouse A"></div>
                         <div class="form-group" style="flex:2;"><label>Description</label><input type="text" id="invDesc" placeholder="Optional notes"></div>
+                    </div>
+                    <!-- Serial Numbers -->
+                    <div style="margin-top:14px;padding:16px;background:#f9fbfc;border:2px dashed #d0d8e0;border-radius:10px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+                            <label style="font-weight:700;color:#2c5364;font-size:14px;">Serial Numbers <span style="font-weight:400;color:#888;font-size:12px;">(optional)</span></label>
+                            <div style="display:flex;gap:6px;">
+                                <button type="button" onclick="startBarcodeScanner()" style="padding:6px 14px;background:#2c5364;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;">&#128247; Scan Barcode</button>
+                                <button type="button" onclick="autoGenSerials()" style="padding:6px 14px;background:#8e44ad;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;">Auto Generate</button>
+                            </div>
+                        </div>
+                        <!-- Barcode scanner area -->
+                        <div id="barcodeScannerArea" style="display:none;margin-bottom:12px;">
+                            <div id="barcodeReader" style="width:100%;max-width:400px;margin:0 auto;"></div>
+                            <div style="text-align:center;margin-top:8px;">
+                                <button type="button" onclick="stopBarcodeScanner()" style="padding:6px 16px;background:#e74c3c;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;">Stop Scanner</button>
+                            </div>
+                        </div>
+                        <!-- Auto-generate controls -->
+                        <div id="autoGenArea" style="display:none;margin-bottom:12px;">
+                            <div class="form-row">
+                                <div class="form-group"><label style="font-size:12px;">Prefix</label><input type="text" id="snPrefix" placeholder="e.g., ESP32-" style="padding:8px;"></div>
+                                <div class="form-group"><label style="font-size:12px;">Start No.</label><input type="number" id="snStart" placeholder="1" min="1" value="1" style="padding:8px;"></div>
+                                <div class="form-group"><label style="font-size:12px;">Count</label><input type="number" id="snCount" placeholder="5" min="1" style="padding:8px;"></div>
+                                <div class="form-group" style="align-self:flex-end;"><button type="button" onclick="generateSerials()" class="add-btn" style="padding:8px 16px;font-size:12px;">Generate</button></div>
+                            </div>
+                        </div>
+                        <!-- Manual entry + list -->
+                        <div style="display:flex;gap:8px;margin-bottom:8px;">
+                            <input type="text" id="snManualInput" placeholder="Type serial number and press Enter" onkeydown="if(event.key==='Enter'){event.preventDefault();addManualSerial();}" style="flex:1;padding:8px 12px;border:2px solid #e0e0e0;border-radius:8px;font-size:13px;">
+                            <button type="button" onclick="addManualSerial()" style="padding:8px 14px;background:#27ae60;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap;">+ Add</button>
+                        </div>
+                        <div id="snList" style="display:flex;flex-wrap:wrap;gap:6px;max-height:150px;overflow-y:auto;"></div>
+                        <div style="margin-top:6px;font-size:12px;color:#888;" id="snCountLabel">0 serial numbers added</div>
                     </div>
                     <div style="display:flex;gap:10px;margin-top:10px;">
                         <button class="add-btn" id="invSubmitBtn" onclick="saveInventoryItem()">+ Add Stock</button>
@@ -2851,6 +2885,100 @@
             }).join("");
         }
 
+        // ===== SERIAL NUMBER MANAGEMENT =====
+        let _serialNumbers = [];
+        let _barcodeScanner = null;
+
+        function renderSerialList() {
+            const container = document.getElementById("snList");
+            container.innerHTML = _serialNumbers.map((sn, i) =>
+                '<span style="display:inline-flex;align-items:center;gap:4px;background:#e3f2fd;color:#1565c0;padding:4px 10px;border-radius:16px;font-size:12px;font-weight:600;">' +
+                sn + '<span onclick="removeSerial(' + i + ')" style="cursor:pointer;color:#e74c3c;font-weight:700;margin-left:2px;">&times;</span></span>'
+            ).join("");
+            document.getElementById("snCountLabel").textContent = _serialNumbers.length + " serial number" + (_serialNumbers.length !== 1 ? "s" : "") + " added";
+        }
+
+        function addManualSerial() {
+            const input = document.getElementById("snManualInput");
+            const val = input.value.trim();
+            if (!val) return;
+            if (_serialNumbers.includes(val)) { showToast("Duplicate serial number: " + val, "error"); return; }
+            _serialNumbers.push(val);
+            input.value = "";
+            renderSerialList();
+            // Auto-update qty
+            document.getElementById("invQty").value = _serialNumbers.length;
+        }
+
+        function removeSerial(idx) {
+            _serialNumbers.splice(idx, 1);
+            renderSerialList();
+            document.getElementById("invQty").value = _serialNumbers.length || "";
+        }
+
+        function autoGenSerials() {
+            const area = document.getElementById("autoGenArea");
+            area.style.display = area.style.display === "none" ? "block" : "none";
+        }
+
+        function generateSerials() {
+            const prefix = document.getElementById("snPrefix").value.trim();
+            const start = parseInt(document.getElementById("snStart").value) || 1;
+            const count = parseInt(document.getElementById("snCount").value) || 0;
+            if (!prefix) { showToast("Enter a prefix.", "error"); return; }
+            if (count <= 0) { showToast("Enter count.", "error"); return; }
+            const padLen = String(start + count - 1).length;
+            for (let i = 0; i < count; i++) {
+                const sn = prefix + String(start + i).padStart(padLen, "0");
+                if (!_serialNumbers.includes(sn)) _serialNumbers.push(sn);
+            }
+            renderSerialList();
+            document.getElementById("invQty").value = _serialNumbers.length;
+            document.getElementById("autoGenArea").style.display = "none";
+            showToast(count + " serial numbers generated!", "success");
+        }
+
+        // Barcode scanner
+        function startBarcodeScanner() {
+            const area = document.getElementById("barcodeScannerArea");
+            area.style.display = "block";
+            try {
+                _barcodeScanner = new Html5Qrcode("barcodeReader");
+                _barcodeScanner.start(
+                    { facingMode: "environment" },
+                    { fps: 10, qrbox: { width: 280, height: 120 }, aspectRatio: 2.0 },
+                    function(decodedText) {
+                        // Success — add serial number
+                        if (!_serialNumbers.includes(decodedText)) {
+                            _serialNumbers.push(decodedText);
+                            renderSerialList();
+                            document.getElementById("invQty").value = _serialNumbers.length;
+                            showToast("Scanned: " + decodedText, "success");
+                        } else {
+                            showToast("Already scanned: " + decodedText, "error");
+                        }
+                    },
+                    function(errorMessage) { /* ignore scan errors */ }
+                ).catch(function(err) {
+                    showToast("Camera error: " + err, "error");
+                    area.style.display = "none";
+                });
+            } catch(e) {
+                showToast("Scanner not supported in this browser.", "error");
+                area.style.display = "none";
+            }
+        }
+
+        function stopBarcodeScanner() {
+            if (_barcodeScanner) {
+                _barcodeScanner.stop().then(function() {
+                    _barcodeScanner.clear();
+                    _barcodeScanner = null;
+                }).catch(function() {});
+            }
+            document.getElementById("barcodeScannerArea").style.display = "none";
+        }
+
         function toggleInvForm() {
             const form = document.getElementById("invAddForm");
             const btn = document.getElementById("invAddToggleBtn");
@@ -2878,6 +3006,12 @@
             document.getElementById("invFormTitle").textContent = "Add Stock";
             document.getElementById("invSubmitBtn").textContent = "+ Add Stock";
             document.getElementById("invCancelBtn").style.display = "none";
+            // Reset serial numbers
+            _serialNumbers = [];
+            renderSerialList();
+            stopBarcodeScanner();
+            document.getElementById("autoGenArea").style.display = "none";
+            document.getElementById("snManualInput").value = "";
         }
 
         function editInventoryItem(idx) {
@@ -2912,9 +3046,10 @@
             const editId = document.getElementById("invEditId").value;
             const action = editId ? "editInventory" : "addInventory";
 
+            const itemId = editId || ("INV-" + Date.now());
             const params = {
                 action: action,
-                itemId: editId || ("INV-" + Date.now()),
+                itemId: itemId,
                 name: name,
                 category: category,
                 qty: qty,
@@ -2922,12 +3057,25 @@
                 unit: document.getElementById("invUnit").value.trim() || "pcs",
                 location: document.getElementById("invLocation").value.trim(),
                 description: document.getElementById("invDesc").value.trim(),
+                serialNumbers: _serialNumbers.join("||"),
                 updatedBy: currentUser ? currentUser.displayName : "Admin"
             };
 
             showLoading(editId ? "Updating item..." : "Adding item...");
             try {
                 await formPost(params);
+                // Save serial numbers separately if any
+                if (_serialNumbers.length > 0 && !editId) {
+                    for (let i = 0; i < _serialNumbers.length; i++) {
+                        await formPost({
+                            action: "addSerialNumber",
+                            serialNo: _serialNumbers[i],
+                            itemId: itemId,
+                            itemName: name,
+                            status: "Available"
+                        });
+                    }
+                }
                 hideLoading();
                 showToast(editId ? "Item updated!" : "Item added!", "success");
                 resetInventoryForm();

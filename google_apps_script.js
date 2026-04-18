@@ -173,6 +173,31 @@ function doGet(e) {
       result = { status: "success", message: "Work done updated." };
     }
 
+    // ===== SERIAL NUMBERS =====
+    else if (action === "getSerialNumbers") {
+      var sheet = ss.getSheetByName("SerialNumbers");
+      if (!sheet) {
+        result = { status: "success", data: [] };
+      } else {
+        var data = sheet.getDataRange().getValues();
+        var serials = [];
+        for (var i = 1; i < data.length; i++) {
+          if (data[i][0]) {
+            serials.push({
+              serialNo: String(data[i][0]),
+              itemId: String(data[i][1]),
+              itemName: String(data[i][2]),
+              status: String(data[i][3] || "Available"),
+              siteName: String(data[i][4] || ""),
+              issuedTo: String(data[i][5] || ""),
+              date: String(data[i][6] || "")
+            });
+          }
+        }
+        result = { status: "success", data: serials };
+      }
+    }
+
     // ===== INVENTORY =====
     else if (action === "getInventoryLog") {
       var sheet = ss.getSheetByName("InventoryLog");
@@ -426,6 +451,41 @@ function doPost(e) {
         for (var i = data.length - 1; i >= 1; i--) {
           if (String(data[i][0]) === targetId) {
             sheet.deleteRow(i + 1);
+            break;
+          }
+        }
+      }
+    }
+
+    // ===== SERIAL NUMBERS =====
+    else if (action === "addSerialNumber") {
+      var sheet = ss.getSheetByName("SerialNumbers");
+      if (!sheet) {
+        sheet = ss.insertSheet("SerialNumbers");
+        sheet.appendRow(["SerialNo", "ItemID", "ItemName", "Status", "SiteName", "IssuedTo", "Date"]);
+      }
+      sheet.appendRow([
+        e.parameter.serialNo || "",
+        e.parameter.itemId || "",
+        e.parameter.itemName || "",
+        e.parameter.status || "Available",
+        "",
+        "",
+        new Date().toLocaleString()
+      ]);
+    }
+
+    else if (action === "updateSerialStatus") {
+      var sheet = ss.getSheetByName("SerialNumbers");
+      if (sheet) {
+        var data = sheet.getDataRange().getValues();
+        var targetSN = e.parameter.serialNo || "";
+        for (var i = data.length - 1; i >= 1; i--) {
+          if (String(data[i][0]) === targetSN) {
+            sheet.getRange(i + 1, 4).setValue(e.parameter.status || "Available");
+            sheet.getRange(i + 1, 5).setValue(e.parameter.siteName || "");
+            sheet.getRange(i + 1, 6).setValue(e.parameter.issuedTo || "");
+            sheet.getRange(i + 1, 7).setValue(new Date().toLocaleString());
             break;
           }
         }
