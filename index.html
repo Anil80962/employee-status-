@@ -918,8 +918,13 @@
                     <div class="stat-card"><div class="stat-num" id="invStatQty" style="color:#27ae60;">0</div><div class="stat-label">Total Quantity</div></div>
                 </div>
 
-                <!-- Add Item Form -->
-                <div class="add-emp-form inv-admin-only" style="margin-top:20px;">
+                <!-- Add Item Toggle Button -->
+                <div class="inv-admin-only" style="margin-top:20px;">
+                    <button id="invAddToggleBtn" onclick="toggleInvForm()" class="add-btn" style="padding:10px 24px;font-size:14px;">+ Add New Item</button>
+                </div>
+
+                <!-- Add Item Form (hidden by default) -->
+                <div class="add-emp-form inv-admin-only" id="invAddForm" style="margin-top:12px;display:none;">
                     <h3 id="invFormTitle">Add New Item</h3>
                     <input type="hidden" id="invEditId">
                     <div class="form-row">
@@ -2840,6 +2845,21 @@
             }).join("");
         }
 
+        function toggleInvForm() {
+            const form = document.getElementById("invAddForm");
+            const btn = document.getElementById("invAddToggleBtn");
+            if (form.style.display === "none") {
+                form.style.display = "";
+                btn.textContent = "- Close Form";
+                btn.style.background = "linear-gradient(135deg,#e74c3c,#c0392b)";
+            } else {
+                form.style.display = "none";
+                btn.textContent = "+ Add New Item";
+                btn.style.background = "";
+                resetInventoryForm();
+            }
+        }
+
         function resetInventoryForm() {
             document.getElementById("invEditId").value = "";
             document.getElementById("invName").value = "";
@@ -2857,6 +2877,10 @@
         function editInventoryItem(idx) {
             const item = _inventoryData[idx];
             if (!item) return;
+            // Show form if hidden
+            document.getElementById("invAddForm").style.display = "";
+            document.getElementById("invAddToggleBtn").textContent = "- Close Form";
+            document.getElementById("invAddToggleBtn").style.background = "linear-gradient(135deg,#e74c3c,#c0392b)";
             document.getElementById("invEditId").value = item.itemId || "";
             document.getElementById("invName").value = item.name || "";
             document.getElementById("invCategory").value = item.category || "";
@@ -2901,6 +2925,9 @@
                 hideLoading();
                 showToast(editId ? "Item updated!" : "Item added!", "success");
                 resetInventoryForm();
+                document.getElementById("invAddForm").style.display = "none";
+                document.getElementById("invAddToggleBtn").textContent = "+ Add New Item";
+                document.getElementById("invAddToggleBtn").style.background = "";
                 loadInventory();
             } catch(err) {
                 hideLoading();
