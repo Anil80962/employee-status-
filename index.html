@@ -920,12 +920,12 @@
 
                 <!-- Add Item Toggle Button -->
                 <div class="inv-admin-only" style="margin-top:20px;">
-                    <button id="invAddToggleBtn" onclick="toggleInvForm()" class="add-btn" style="padding:10px 24px;font-size:14px;">+ Add New Item</button>
+                    <button id="invAddToggleBtn" onclick="toggleInvForm()" class="add-btn" style="padding:10px 24px;font-size:14px;">+ Add Stock</button>
                 </div>
 
                 <!-- Add Item Form (hidden by default) -->
                 <div class="add-emp-form inv-admin-only" id="invAddForm" style="margin-top:12px;display:none;">
-                    <h3 id="invFormTitle">Add New Item</h3>
+                    <h3 id="invFormTitle">Add Stock</h3>
                     <input type="hidden" id="invEditId">
                     <div class="form-row">
                         <div class="form-group"><label>Item Name <span class="req">*</span></label><input type="text" id="invName" placeholder="e.g., Flow Meter"></div>
@@ -2854,7 +2854,7 @@
                 btn.style.background = "linear-gradient(135deg,#e74c3c,#c0392b)";
             } else {
                 form.style.display = "none";
-                btn.textContent = "+ Add New Item";
+                btn.textContent = "+ Add Stock";
                 btn.style.background = "";
                 resetInventoryForm();
             }
@@ -2869,7 +2869,7 @@
             document.getElementById("invUnit").value = "";
             document.getElementById("invLocation").value = "";
             document.getElementById("invDesc").value = "";
-            document.getElementById("invFormTitle").textContent = "Add New Item";
+            document.getElementById("invFormTitle").textContent = "Add Stock";
             document.getElementById("invSubmitBtn").textContent = "+ Add Item";
             document.getElementById("invCancelBtn").style.display = "none";
         }
@@ -2926,7 +2926,7 @@
                 showToast(editId ? "Item updated!" : "Item added!", "success");
                 resetInventoryForm();
                 document.getElementById("invAddForm").style.display = "none";
-                document.getElementById("invAddToggleBtn").textContent = "+ Add New Item";
+                document.getElementById("invAddToggleBtn").textContent = "+ Add Stock";
                 document.getElementById("invAddToggleBtn").style.background = "";
                 loadInventory();
             } catch(err) {
