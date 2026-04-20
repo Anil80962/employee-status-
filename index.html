@@ -3542,6 +3542,71 @@
             document.getElementById("reportPromptOverlay").style.display = "none";
         }
 
+        function saveReportOnly() {
+            const r = window._pendingReportRow;
+            if (!r) return;
+
+            // Capture signatures
+            const custSigData = (() => { const c = document.getElementById("promptSigCustomer"); return (c && c._hasSig) ? c.toDataURL() : ""; })();
+            const engSigData  = (() => { const c = document.getElementById("promptSigEngineer");  return (c && c._hasSig) ? c.toDataURL() : ""; })();
+
+            const reportData = {
+                instructionFrom:     document.getElementById("promptInstructionFrom").value,
+                inspectedBy:         document.getElementById("promptInspectedBy").value,
+                feedbackName:        document.getElementById("promptFeedbackName").value,
+                feedbackDesignation: document.getElementById("promptFeedbackDesignation").value,
+                feedbackPhone:       document.getElementById("promptFeedbackPhone").value,
+                feedbackEmail:       document.getElementById("promptFeedbackEmail").value,
+                custSig:             custSigData,
+                engSig:              engSigData,
+                savedAt:             new Date().toISOString()
+            };
+
+            // Save to localStorage
+            saveReport(r.empId, r.date, reportData);
+
+            // Save report fields to StatusUpdates sheet (columns O-T)
+            try {
+                const rptParams = {
+                    action: "updateWorkDone",
+                    empId: r.empId,
+                    date: r.date,
+                    workDone: r.workDone || "",
+                    completionPct: r.completionPct || "0",
+                    workRemarks: r.workRemarks || "",
+                    nextVisitRequired: r.nextVisitRequired || "No",
+                    nextVisitDate: r.nextVisitDate || "",
+                    instructionFrom: reportData.instructionFrom,
+                    inspectedBy: reportData.inspectedBy,
+                    customerName: reportData.feedbackName,
+                    designation: reportData.feedbackDesignation,
+                    phone: reportData.feedbackPhone,
+                    email: reportData.feedbackEmail
+                };
+                const rptQs = Object.keys(rptParams).map(k => encodeURIComponent(k) + "=" + encodeURIComponent(rptParams[k])).join("&");
+                new Image().src = SCRIPT_URL + "?" + rptQs;
+                try { fetch(SCRIPT_URL + "?" + rptQs, { mode: "no-cors" }); } catch(e2) {}
+            } catch(e) {}
+
+            // Save signatures via POST
+            try {
+                if (custSigData || engSigData) {
+                    formPost({
+                        action: "saveReportSignatures",
+                        empId: r.empId,
+                        date: r.date,
+                        custSig: custSigData,
+                        engSig: engSigData
+                    });
+                }
+            } catch(e) {}
+
+            // Refresh overview table so button turns green
+            if (typeof renderOverviewTable === "function") renderOverviewTable(window._overviewData || []);
+
+            showToast("Report data saved to sheet!", "success");
+        }
+
         function confirmReportGenerate() {
             const r = window._pendingReportRow;
             if (!r) return;
@@ -3862,9 +3927,12 @@
                 </div>
             </div>
 
-            <div class="rpt-btn-row">
+            <div class="rpt-btn-row" style="justify-content:space-between;">
                 <button class="wd-btn-cancel" onclick="closeReportPrompt()">Cancel</button>
-                <button class="btn" onclick="confirmReportGenerate()" style="background:linear-gradient(135deg,#27ae60,#2ecc71);">&#10003; Save &amp; Generate</button>
+                <div style="display:flex;gap:10px;">
+                    <button class="btn" onclick="saveReportOnly()" style="background:linear-gradient(135deg,#2c5364,#1a3a5c);padding:12px 24px;">&#128190; Save</button>
+                    <button class="btn" onclick="confirmReportGenerate()" style="background:linear-gradient(135deg,#27ae60,#2ecc71);padding:12px 24px;">&#128424; Generate Report</button>
+                </div>
             </div>
         </div>
     </div>
