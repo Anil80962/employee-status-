@@ -319,18 +319,6 @@ function doPost(e) {
           ""
         ]);
       }
-      // ── Push to ClickUp (live sync) ──
-      try {
-        pushStatusToClickUp(
-          targetEmpId,
-          e.parameter.empName || "",
-          e.parameter.status  || "",
-          e.parameter.siteName || "",
-          e.parameter.workType || "",
-          e.parameter.scopeOfWork || "",
-          targetDate, "", "0", "", "No", ""
-        );
-      } catch(cuErr) { /* ClickUp sync non-blocking */ }
     }
 
     else if (action === "addEmployee") {
@@ -368,19 +356,6 @@ function doPost(e) {
         // If no matching row found, add headers if needed and note it
         if (!found) {
           // Could not find matching status entry to update
-        } else {
-          // ── Push Work Done update to ClickUp ──
-          try {
-            pushStatusToClickUp(
-              targetEmpId, "", "", "", "", "",
-              e.parameter.date || "",
-              e.parameter.workDone || "",
-              e.parameter.completionPct || "0",
-              e.parameter.workRemarks || "",
-              e.parameter.nextVisitRequired || "No",
-              e.parameter.nextVisitDate || ""
-            );
-          } catch(cuErr) { /* ClickUp sync non-blocking */ }
         }
       }
     }
