@@ -1317,7 +1317,7 @@
 
                 showLoading("Loading employees...");
                 await fetchEmployees();
-                loadSitesFromSheet(); // Load sites from sheet in background
+                await loadSitesFromSheet(); // Load sites with address details from sheet
                 hideLoading();
 
                 setupDashboard();
@@ -3636,7 +3636,7 @@
             showToast("Report data saved to sheet!", "success");
         }
 
-        function confirmReportGenerate() {
+        async function confirmReportGenerate() {
             const r = window._pendingReportRow;
             if (!r) return;
 
@@ -3667,13 +3667,28 @@
             set("csrWorkDetails",  r.workDone || "");
             set("csrRemarks",      r.workRemarks || "");
 
-            // Auto-fill address from site data
-            const siteInfo = getSiteDetails(r.siteName);
-            if (siteInfo) {
+            // Auto-fill address from site data (cached or fetch fresh)
+            let siteInfo = getSiteDetails(r.siteName);
+            if (siteInfo && siteInfo.address) {
                 set("csrAddress", siteInfo.address || "");
                 set("csrCity",    siteInfo.city || "");
                 set("csrState",   siteInfo.state || "");
                 set("csrZip",     siteInfo.zipCode || "");
+            } else {
+                // Fetch fresh from sheet
+                try {
+                    const siteResult = await sheetFetch("action=getSites");
+                    const sites = siteResult.data || [];
+                    if (!window._siteDetails) window._siteDetails = {};
+                    sites.forEach(s => { window._siteDetails[s.name.toLowerCase()] = s; });
+                    const fresh = getSiteDetails(r.siteName);
+                    if (fresh) {
+                        set("csrAddress", fresh.address || "");
+                        set("csrCity",    fresh.city || "");
+                        set("csrState",   fresh.state || "");
+                        set("csrZip",     fresh.zipCode || "");
+                    }
+                } catch(e) {}
             }
 
             // Default timings
