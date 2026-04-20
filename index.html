@@ -3519,13 +3519,18 @@
             document.getElementById("promptFeedbackPhone").value     = custPhone;
             document.getElementById("promptFeedbackEmail").value     = custEmail;
 
+            const hasData = !!(instrFrom || custName);
             if (saved) {
                 if (saved.custSig) loadSigToCanvas("promptSigCustomer", saved.custSig);
                 if (saved.engSig)  loadSigToCanvas("promptSigEngineer",  saved.engSig);
                 document.querySelector("#reportPromptOverlay h3").innerHTML = '&#9998; Edit Service Report';
-            } else if (instrFrom || custName) {
-                // Data from sheet — show as edit
+            } else if (hasData) {
                 document.querySelector("#reportPromptOverlay h3").innerHTML = '&#9998; Edit Service Report';
+                // Try loading signatures from sheet
+                sheetFetch("action=getReportSignatures&empId=" + encodeURIComponent(r.empId) + "&date=" + encodeURIComponent(r.date)).then(res => {
+                    if (res.custSig) loadSigToCanvas("promptSigCustomer", res.custSig);
+                    if (res.engSig)  loadSigToCanvas("promptSigEngineer",  res.engSig);
+                }).catch(() => {});
             } else {
                 document.querySelector("#reportPromptOverlay h3").innerHTML = '&#128424; Generate Service Report';
             }
@@ -3620,6 +3625,19 @@
                 const rptQs = Object.keys(rptParams).map(k => encodeURIComponent(k) + "=" + encodeURIComponent(rptParams[k])).join("&");
                 new Image().src = SCRIPT_URL + "?" + rptQs;
                 try { fetch(SCRIPT_URL + "?" + rptQs, { mode: "no-cors" }); } catch(e2) {}
+            } catch(e) {}
+
+            // Save signatures to sheet (columns U-V) via POST (too large for GET)
+            try {
+                if (custSigData || engSigData) {
+                    formPost({
+                        action: "saveReportSignatures",
+                        empId: r.empId,
+                        date: r.date,
+                        custSig: custSigData,
+                        engSig: engSigData
+                    });
+                }
             } catch(e) {}
 
             // Refresh overview table so button turns green immediately

@@ -245,6 +245,24 @@ function doGet(e) {
       }
     }
 
+    // ===== REPORT SIGNATURES =====
+    else if (action === "getReportSignatures") {
+      var sheet = ss.getSheetByName("StatusUpdates");
+      var targetEmpId = e.parameter.empId || "";
+      var targetDate = e.parameter.date || "";
+      result = { status: "success", custSig: "", engSig: "" };
+      if (sheet && targetEmpId && targetDate) {
+        var data = sheet.getDataRange().getValues();
+        for (var i = data.length - 1; i >= 1; i--) {
+          if (String(data[i][1]) === targetEmpId && formatDate(data[i][8]) === targetDate) {
+            result.custSig = String(data[i][20] || "");
+            result.engSig  = String(data[i][21] || "");
+            break;
+          }
+        }
+      }
+    }
+
     // ===== SERIAL NUMBERS =====
     else if (action === "getSerialNumbers") {
       var sheet = ss.getSheetByName("SerialNumbers");
@@ -597,6 +615,23 @@ function doPost(e) {
           e.parameter.completionPct || "",
           e.parameter.remarks || ""
         ]);
+      }
+    }
+
+    // ===== REPORT SIGNATURES =====
+    else if (action === "saveReportSignatures") {
+      var sheet = ss.getSheetByName("StatusUpdates");
+      if (sheet) {
+        var data = sheet.getDataRange().getValues();
+        var targetEmpId = e.parameter.empId || "";
+        var targetDate = e.parameter.date || "";
+        for (var i = data.length - 1; i >= 1; i--) {
+          if (String(data[i][1]) === targetEmpId && formatDate(data[i][8]) === targetDate) {
+            if (e.parameter.custSig) sheet.getRange(i + 1, 21).setValue(e.parameter.custSig);
+            if (e.parameter.engSig)  sheet.getRange(i + 1, 22).setValue(e.parameter.engSig);
+            break;
+          }
+        }
       }
     }
 
