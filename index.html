@@ -3542,6 +3542,35 @@
             document.getElementById("reportPromptOverlay").style.display = "none";
         }
 
+        async function refreshReportFromSheet() {
+            const r = window._pendingReportRow;
+            if (!r) { showToast("No report data to refresh.", "error"); return; }
+            showToast("Loading from sheet...", "success");
+            try {
+                // Fetch latest status data for this employee+date
+                const result = await sheetFetch("action=getStatus&date=" + encodeURIComponent(r.date));
+                const rows = result.data || [];
+                const row = rows.find(x => x.empId === r.empId);
+                if (row) {
+                    // Update fields from sheet
+                    document.getElementById("promptInstructionFrom").value   = row.instructionFrom || "";
+                    document.getElementById("promptInspectedBy").value       = row.inspectedBy || r.empName || "";
+                    document.getElementById("promptFeedbackName").value      = row.customerName || "";
+                    document.getElementById("promptFeedbackDesignation").value = row.designation || "";
+                    document.getElementById("promptFeedbackPhone").value     = row.phone || "";
+                    document.getElementById("promptFeedbackEmail").value     = row.email || "";
+                }
+                // Fetch signatures
+                const sigResult = await sheetFetch("action=getReportSignatures&empId=" + encodeURIComponent(r.empId) + "&date=" + encodeURIComponent(r.date));
+                if (sigResult.custSig) loadSigToCanvas("promptSigCustomer", sigResult.custSig);
+                if (sigResult.engSig)  loadSigToCanvas("promptSigEngineer",  sigResult.engSig);
+
+                showToast("Data refreshed from sheet!", "success");
+            } catch(err) {
+                showToast("Failed to refresh: " + err.message, "error");
+            }
+        }
+
         function saveReportOnly() {
             const r = window._pendingReportRow;
             if (!r) return;
@@ -3928,7 +3957,10 @@
             </div>
 
             <div class="rpt-btn-row" style="justify-content:space-between;">
-                <button class="wd-btn-cancel" onclick="closeReportPrompt()">Cancel</button>
+                <div style="display:flex;gap:10px;">
+                    <button class="wd-btn-cancel" onclick="closeReportPrompt()">Cancel</button>
+                    <button class="btn" onclick="refreshReportFromSheet()" style="background:linear-gradient(135deg,#2980b9,#3498db);padding:12px 16px;">&#x21bb; Refresh</button>
+                </div>
                 <div style="display:flex;gap:10px;">
                     <button class="btn" onclick="saveReportOnly()" style="background:linear-gradient(135deg,#2c5364,#1a3a5c);padding:12px 24px;">&#128190; Save</button>
                     <button class="btn" onclick="confirmReportGenerate()" style="background:linear-gradient(135deg,#27ae60,#2ecc71);padding:12px 24px;">&#128424; Generate Report</button>
