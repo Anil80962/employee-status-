@@ -192,6 +192,12 @@
         .emp-card.office .emp-avatar {
             background: linear-gradient(135deg, #1e8449, #27ae60);
         }
+        .emp-card.wfh {
+            border-color: #2980b9; background: #eaf4fc; opacity: 0.9;
+        }
+        .emp-card.wfh .emp-avatar {
+            background: linear-gradient(135deg, #2471a3, #2980b9);
+        }
         .emp-card.on-leave {
             border-color: #8e44ad; background: #f9f0fd; opacity: 0.85;
         }
@@ -374,6 +380,13 @@
                         Available at Office <span id="officeCount" style="font-size:12px;font-weight:600;background:rgba(39,174,96,0.1);color:#27ae60;padding:2px 10px;border-radius:12px;"></span>
                     </div>
                     <div class="employee-grid" id="officeGrid"></div>
+                </div>
+                <div id="wfhSection" style="display:none;margin-bottom:24px;">
+                    <div style="font-size:15px;font-weight:700;color:#2980b9;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+                        <span style="display:inline-block;width:10px;height:10px;background:#2980b9;border-radius:50%;"></span>
+                        Work From Home <span id="wfhCount" style="font-size:12px;font-weight:600;background:rgba(41,128,185,0.1);color:#2980b9;padding:2px 10px;border-radius:12px;"></span>
+                    </div>
+                    <div class="employee-grid" id="wfhGrid"></div>
                 </div>
                 <div id="onLeaveSection" style="display:none;margin-bottom:24px;">
                     <div style="font-size:15px;font-weight:700;color:#8e44ad;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
@@ -1611,50 +1624,59 @@
             const grid            = document.getElementById("employeeGrid");
             const assignedGrid    = document.getElementById("assignedGrid");
             const officeGrid      = document.getElementById("officeGrid");
+            const wfhGrid         = document.getElementById("wfhGrid");
             const onLeaveGrid     = document.getElementById("onLeaveGrid");
             const assignedSection  = document.getElementById("assignedSection");
             const officeSection    = document.getElementById("officeSection");
+            const wfhSection       = document.getElementById("wfhSection");
             const onLeaveSection   = document.getElementById("onLeaveSection");
             const availableLabel   = document.getElementById("availableLabel");
             grid.innerHTML = "";
             assignedGrid.innerHTML = "";
             officeGrid.innerHTML = "";
+            wfhGrid.innerHTML = "";
             onLeaveGrid.innerHTML = "";
 
             if (employees.length === 0) {
                 grid.innerHTML = '<p style="color:#888; grid-column:1/-1; text-align:center;">No employees found. Admin can add employees in "Manage Employees" tab.</p>';
                 assignedSection.style.display  = "none";
                 officeSection.style.display    = "none";
+                wfhSection.style.display       = "none";
                 onLeaveSection.style.display   = "none";
                 availableLabel.style.display   = "none";
                 return;
             }
 
-            // Split into 4 buckets
+            // Split into 5 buckets
             const getStatus = e => window._assignmentInfo?.[e.id]?.status || "";
-            const assigned  = employees.filter(e =>  assignedEmployeeIds.has(e.id) && !["In Office","On Leave","Holiday","Weekend"].includes(getStatus(e)));
+            const assigned  = employees.filter(e =>  assignedEmployeeIds.has(e.id) && !["In Office","Work From Home","On Leave","Holiday","Weekend"].includes(getStatus(e)));
             const inOffice  = employees.filter(e =>  assignedEmployeeIds.has(e.id) && getStatus(e) === "In Office");
+            const wfh       = employees.filter(e =>  assignedEmployeeIds.has(e.id) && getStatus(e) === "Work From Home");
             const onLeave   = employees.filter(e =>  assignedEmployeeIds.has(e.id) && ["On Leave","Holiday","Weekend"].includes(getStatus(e)));
             const available = employees.filter(e => !assignedEmployeeIds.has(e.id));
 
             const hasDate = !!document.getElementById("assignCheckDate").value;
-            const anyGrouped = assigned.length > 0 || inOffice.length > 0 || onLeave.length > 0;
+            const anyGrouped = assigned.length > 0 || inOffice.length > 0 || wfh.length > 0 || onLeave.length > 0;
 
             if (hasDate && anyGrouped) {
                 assignedSection.style.display  = assigned.length  > 0 ? "block" : "none";
                 officeSection.style.display    = inOffice.length  > 0 ? "block" : "none";
+                wfhSection.style.display       = wfh.length       > 0 ? "block" : "none";
                 onLeaveSection.style.display   = onLeave.length   > 0 ? "block" : "none";
                 availableLabel.style.display   = "flex";
                 document.getElementById("assignedCount").textContent  = assigned.length  + " employee" + (assigned.length  !== 1 ? "s" : "");
                 document.getElementById("officeCount").textContent    = inOffice.length  + " employee" + (inOffice.length  !== 1 ? "s" : "");
+                document.getElementById("wfhCount").textContent       = wfh.length       + " employee" + (wfh.length       !== 1 ? "s" : "");
                 document.getElementById("onLeaveCount").textContent   = onLeave.length   + " employee" + (onLeave.length   !== 1 ? "s" : "");
                 document.getElementById("availableCount").textContent = available.length + " employee" + (available.length !== 1 ? "s" : "");
                 assigned.forEach(emp => assignedGrid.appendChild(createEmpCard(emp, true, window._assignmentInfo?.[emp.id] || null)));
                 inOffice.forEach(emp => officeGrid.appendChild(createEmpCard(emp,  true, window._assignmentInfo?.[emp.id] || null)));
+                wfh.forEach(emp      => wfhGrid.appendChild(createEmpCard(emp,     true, window._assignmentInfo?.[emp.id] || null)));
                 onLeave.forEach(emp  => onLeaveGrid.appendChild(createEmpCard(emp, true, window._assignmentInfo?.[emp.id] || null)));
             } else {
                 assignedSection.style.display  = "none";
                 officeSection.style.display    = "none";
+                wfhSection.style.display       = "none";
                 onLeaveSection.style.display   = "none";
                 availableLabel.style.display   = "none";
             }
@@ -1668,6 +1690,7 @@
             const initials = emp.name.split(" ").map(n => n[0]).join("").substring(0,2);
             const status = info?.status || "";
             const isOffice = status === "In Office";
+            const isWFH    = status === "Work From Home";
             const isLeave  = status === "On Leave" || status === "Holiday" || status === "Weekend";
 
             let cardClass = "emp-card" + (selectedEmployees.has(emp.id) ? " selected" : "");
@@ -1678,6 +1701,10 @@
                     cardClass += " office";
                     badge = '<span class="office-badge">In Office</span>';
                     infoColor = "#1e8449";
+                } else if (isWFH) {
+                    cardClass += " wfh";
+                    badge = '<span style="background:linear-gradient(135deg,#2980b9,#3498db);color:#fff;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;">WFH</span>';
+                    infoColor = "#2471a3";
                 } else if (isLeave) {
                     cardClass += " on-leave";
                     badge = '<span class="leave-badge">' + status + '</span>';
@@ -1694,7 +1721,7 @@
             const card = document.createElement("div");
             card.className = cardClass;
             const statusInfo = isAssigned && info
-                ? `<div style="font-size:11px;color:${infoColor};margin-top:2px;">${(!isLeave && info.siteName) ? info.siteName + ' - ' : ''}${info.status}</div>`
+                ? `<div style="font-size:11px;color:${infoColor};margin-top:2px;">${(!isLeave && !isWFH && info.siteName) ? info.siteName + ' - ' : ''}${info.status}</div>`
                 : "";
             card.innerHTML = `
                 <div class="emp-avatar">${initials}</div>
