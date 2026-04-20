@@ -160,7 +160,7 @@ function doGet(e) {
         var targetEmpId = e.parameter.empId || "";
         var targetDate = e.parameter.date || "";
         for (var i = data.length - 1; i >= 1; i--) {
-          if (String(data[i][1]) === targetEmpId && String(data[i][8]) === targetDate) {
+          if (String(data[i][1]) === targetEmpId && formatDate(data[i][8]) === targetDate) {
             sheet.getRange(i + 1, 10).setValue(e.parameter.workDone || "");
             sheet.getRange(i + 1, 11).setValue(e.parameter.completionPct || "0");
             sheet.getRange(i + 1, 12).setValue(e.parameter.workRemarks || "");
@@ -342,7 +342,7 @@ function doPost(e) {
         var targetDate = e.parameter.date || "";
         var found = false;
         for (var i = data.length - 1; i >= 1; i--) {
-          if (String(data[i][1]) === targetEmpId && String(data[i][8]) === targetDate) {
+          if (String(data[i][1]) === targetEmpId && formatDate(data[i][8]) === targetDate) {
             // Update columns J-N (indices 10-14 in 1-based, 9-13 in 0-based)
             sheet.getRange(i + 1, 10).setValue(e.parameter.workDone || "");
             sheet.getRange(i + 1, 11).setValue(e.parameter.completionPct || "0");
