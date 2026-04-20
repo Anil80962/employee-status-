@@ -108,7 +108,13 @@ function doGet(e) {
               completionPct: String(data[i][10] || "0"),
               workRemarks: String(data[i][11] || ""),
               nextVisitRequired: String(data[i][12] || "No"),
-              nextVisitDate: String(data[i][13] || "")
+              nextVisitDate: String(data[i][13] || ""),
+              instructionFrom: String(data[i][14] || ""),
+              inspectedBy: String(data[i][15] || ""),
+              customerName: String(data[i][16] || ""),
+              designation: String(data[i][17] || ""),
+              phone: String(data[i][18] || ""),
+              email: String(data[i][19] || "")
             });
           }
         }
@@ -166,6 +172,13 @@ function doGet(e) {
             sheet.getRange(i + 1, 12).setValue(e.parameter.workRemarks || "");
             sheet.getRange(i + 1, 13).setValue(e.parameter.nextVisitRequired || "No");
             sheet.getRange(i + 1, 14).setValue(e.parameter.nextVisitDate || "");
+            // Service report fields (columns O-T)
+            if (e.parameter.instructionFrom !== undefined) sheet.getRange(i + 1, 15).setValue(e.parameter.instructionFrom || "");
+            if (e.parameter.inspectedBy !== undefined)     sheet.getRange(i + 1, 16).setValue(e.parameter.inspectedBy || "");
+            if (e.parameter.customerName !== undefined)     sheet.getRange(i + 1, 17).setValue(e.parameter.customerName || "");
+            if (e.parameter.designation !== undefined)      sheet.getRange(i + 1, 18).setValue(e.parameter.designation || "");
+            if (e.parameter.phone !== undefined)            sheet.getRange(i + 1, 19).setValue(e.parameter.phone || "");
+            if (e.parameter.email !== undefined)            sheet.getRange(i + 1, 20).setValue(e.parameter.email || "");
             break;
           }
         }
@@ -342,7 +355,7 @@ function doPost(e) {
       var sheet = ss.getSheetByName("StatusUpdates");
       if (!sheet) {
         sheet = ss.insertSheet("StatusUpdates");
-        sheet.appendRow(["Timestamp", "EmpID", "EmpName", "Role", "SiteName", "WorkType", "ScopeOfWork", "Status", "Date", "WorkDone", "CompletionPct", "WorkRemarks", "NextVisitRequired", "NextVisitDate"]);
+        sheet.appendRow(["Timestamp", "EmpID", "EmpName", "Role", "SiteName", "WorkType", "ScopeOfWork", "Status", "Date", "WorkDone", "CompletionPct", "WorkRemarks", "NextVisitRequired", "NextVisitDate", "InstructionFrom", "InspectedBy", "CustomerName", "Designation", "Phone", "Email"]);
       }
       var targetEmpId = e.parameter.empId || "";
       var targetDate = e.parameter.date || "";
@@ -402,12 +415,19 @@ function doPost(e) {
         var found = false;
         for (var i = data.length - 1; i >= 1; i--) {
           if (String(data[i][1]) === targetEmpId && formatDate(data[i][8]) === targetDate) {
-            // Update columns J-N (indices 10-14 in 1-based, 9-13 in 0-based)
+            // Update columns J-N (indices 10-14 in 1-based)
             sheet.getRange(i + 1, 10).setValue(e.parameter.workDone || "");
             sheet.getRange(i + 1, 11).setValue(e.parameter.completionPct || "0");
             sheet.getRange(i + 1, 12).setValue(e.parameter.workRemarks || "");
             sheet.getRange(i + 1, 13).setValue(e.parameter.nextVisitRequired || "No");
             sheet.getRange(i + 1, 14).setValue(e.parameter.nextVisitDate || "");
+            // Service report fields O-T (columns 15-20)
+            if (e.parameter.instructionFrom !== undefined) sheet.getRange(i + 1, 15).setValue(e.parameter.instructionFrom || "");
+            if (e.parameter.inspectedBy !== undefined)     sheet.getRange(i + 1, 16).setValue(e.parameter.inspectedBy || "");
+            if (e.parameter.customerName !== undefined)     sheet.getRange(i + 1, 17).setValue(e.parameter.customerName || "");
+            if (e.parameter.designation !== undefined)      sheet.getRange(i + 1, 18).setValue(e.parameter.designation || "");
+            if (e.parameter.phone !== undefined)            sheet.getRange(i + 1, 19).setValue(e.parameter.phone || "");
+            if (e.parameter.email !== undefined)            sheet.getRange(i + 1, 20).setValue(e.parameter.email || "");
             found = true;
             break;
           }

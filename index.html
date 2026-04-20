@@ -3502,27 +3502,31 @@
             clearSigPad("promptSigCustomer");
             clearSigPad("promptSigEngineer");
 
-            // Check for saved report data
+            // Check for saved report data (localStorage first, then sheet data)
             const saved = getSavedReport(r.empId, r.date);
+            // Pre-fill from sheet data (r.instructionFrom etc.) or localStorage saved data
+            const instrFrom = (saved && saved.instructionFrom) || r.instructionFrom || "";
+            const inspBy    = (saved && saved.inspectedBy) || r.inspectedBy || r.empName || "";
+            const custName  = (saved && saved.feedbackName) || r.customerName || "";
+            const custDesg  = (saved && saved.feedbackDesignation) || r.designation || "";
+            const custPhone = (saved && saved.feedbackPhone) || r.phone || "";
+            const custEmail = (saved && saved.feedbackEmail) || r.email || "";
+
+            document.getElementById("promptInstructionFrom").value   = instrFrom;
+            document.getElementById("promptInspectedBy").value       = inspBy;
+            document.getElementById("promptFeedbackName").value      = custName;
+            document.getElementById("promptFeedbackDesignation").value = custDesg;
+            document.getElementById("promptFeedbackPhone").value     = custPhone;
+            document.getElementById("promptFeedbackEmail").value     = custEmail;
+
             if (saved) {
-                document.getElementById("promptInstructionFrom").value   = saved.instructionFrom || "";
-                document.getElementById("promptInspectedBy").value       = saved.inspectedBy || r.empName || "";
-                document.getElementById("promptFeedbackName").value      = saved.feedbackName || "";
-                document.getElementById("promptFeedbackDesignation").value = saved.feedbackDesignation || "";
-                document.getElementById("promptFeedbackPhone").value     = saved.feedbackPhone || "";
-                document.getElementById("promptFeedbackEmail").value     = saved.feedbackEmail || "";
-                // Restore signatures from saved data
                 if (saved.custSig) loadSigToCanvas("promptSigCustomer", saved.custSig);
                 if (saved.engSig)  loadSigToCanvas("promptSigEngineer",  saved.engSig);
-                // Update modal title to indicate editing
+                document.querySelector("#reportPromptOverlay h3").innerHTML = '&#9998; Edit Service Report';
+            } else if (instrFrom || custName) {
+                // Data from sheet — show as edit
                 document.querySelector("#reportPromptOverlay h3").innerHTML = '&#9998; Edit Service Report';
             } else {
-                document.getElementById("promptInspectedBy").value       = r.empName || "";
-                document.getElementById("promptInstructionFrom").value   = "";
-                document.getElementById("promptFeedbackName").value      = "";
-                document.getElementById("promptFeedbackDesignation").value = "";
-                document.getElementById("promptFeedbackPhone").value     = "";
-                document.getElementById("promptFeedbackEmail").value     = "";
                 document.querySelector("#reportPromptOverlay h3").innerHTML = '&#128424; Generate Service Report';
             }
 
@@ -3595,24 +3599,27 @@
             };
             saveReport(r.empId, r.date, reportData);
 
-            // Save report to Google Sheet (centralized)
+            // Save report fields to StatusUpdates sheet (columns O-T)
             try {
-                formPost({
-                    action: "saveServiceReport",
+                const rptParams = {
+                    action: "updateWorkDone",
                     empId: r.empId,
-                    empName: r.empName,
                     date: r.date,
-                    siteName: r.siteName || "",
+                    workDone: r.workDone || "",
+                    completionPct: r.completionPct || "0",
+                    workRemarks: r.workRemarks || "",
+                    nextVisitRequired: r.nextVisitRequired || "No",
+                    nextVisitDate: r.nextVisitDate || "",
                     instructionFrom: reportData.instructionFrom,
                     inspectedBy: reportData.inspectedBy,
                     customerName: reportData.feedbackName,
                     designation: reportData.feedbackDesignation,
                     phone: reportData.feedbackPhone,
-                    email: reportData.feedbackEmail,
-                    workDone: r.workDone || "",
-                    completionPct: r.completionPct || "",
-                    remarks: r.workRemarks || ""
-                });
+                    email: reportData.feedbackEmail
+                };
+                const rptQs = Object.keys(rptParams).map(k => encodeURIComponent(k) + "=" + encodeURIComponent(rptParams[k])).join("&");
+                new Image().src = SCRIPT_URL + "?" + rptQs;
+                try { fetch(SCRIPT_URL + "?" + rptQs, { mode: "no-cors" }); } catch(e2) {}
             } catch(e) {}
 
             // Refresh overview table so button turns green immediately
