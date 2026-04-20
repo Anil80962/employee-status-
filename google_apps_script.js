@@ -173,6 +173,65 @@ function doGet(e) {
       result = { status: "success", message: "Work done updated." };
     }
 
+    // ===== SITES =====
+    else if (action === "getSites") {
+      var sheet = ss.getSheetByName("Sites");
+      if (!sheet) {
+        result = { status: "success", data: [] };
+      } else {
+        var data = sheet.getDataRange().getValues();
+        var sites = [];
+        for (var i = 1; i < data.length; i++) {
+          if (data[i][0] || data[i][1]) {
+            sites.push({
+              id: String(data[i][0] || ""),
+              name: String(data[i][1] || ""),
+              address: String(data[i][2] || ""),
+              city: String(data[i][3] || ""),
+              state: String(data[i][4] || ""),
+              zipCode: String(data[i][5] || ""),
+              contactName: String(data[i][6] || ""),
+              contactPhone: String(data[i][7] || ""),
+              contactEmail: String(data[i][8] || "")
+            });
+          }
+        }
+        result = { status: "success", data: sites };
+      }
+    }
+
+    // ===== SERVICE REPORTS =====
+    else if (action === "getServiceReports") {
+      var sheet = ss.getSheetByName("ServiceReports");
+      if (!sheet) {
+        result = { status: "success", data: [] };
+      } else {
+        var data = sheet.getDataRange().getValues();
+        var reports = [];
+        for (var i = 1; i < data.length; i++) {
+          if (data[i][0]) {
+            reports.push({
+              timestamp: String(data[i][0]),
+              empId: String(data[i][1]),
+              empName: String(data[i][2]),
+              date: String(data[i][3]),
+              siteName: String(data[i][4]),
+              instructionFrom: String(data[i][5] || ""),
+              inspectedBy: String(data[i][6] || ""),
+              customerName: String(data[i][7] || ""),
+              designation: String(data[i][8] || ""),
+              phone: String(data[i][9] || ""),
+              email: String(data[i][10] || ""),
+              workDone: String(data[i][11] || ""),
+              completionPct: String(data[i][12] || ""),
+              remarks: String(data[i][13] || "")
+            });
+          }
+        }
+        result = { status: "success", data: reports };
+      }
+    }
+
     // ===== SERIAL NUMBERS =====
     else if (action === "getSerialNumbers") {
       var sheet = ss.getSheetByName("SerialNumbers");
@@ -429,6 +488,95 @@ function doPost(e) {
             break;
           }
         }
+      }
+    }
+
+    // ===== SITES =====
+    else if (action === "addSite") {
+      var sheet = ss.getSheetByName("Sites");
+      if (!sheet) {
+        sheet = ss.insertSheet("Sites");
+        sheet.appendRow(["SiteID", "SiteName", "Address", "City", "State", "ZipCode", "ContactName", "ContactPhone", "ContactEmail"]);
+      }
+      // Check if site already exists
+      var data = sheet.getDataRange().getValues();
+      var exists = false;
+      var siteName = e.parameter.name || "";
+      for (var i = 1; i < data.length; i++) {
+        if (String(data[i][1]).toLowerCase() === siteName.toLowerCase()) {
+          exists = true;
+          // Update existing
+          sheet.getRange(i + 1, 3).setValue(e.parameter.address || "");
+          sheet.getRange(i + 1, 4).setValue(e.parameter.city || "");
+          sheet.getRange(i + 1, 5).setValue(e.parameter.state || "");
+          sheet.getRange(i + 1, 6).setValue(e.parameter.zipCode || "");
+          sheet.getRange(i + 1, 7).setValue(e.parameter.contactName || "");
+          sheet.getRange(i + 1, 8).setValue(e.parameter.contactPhone || "");
+          sheet.getRange(i + 1, 9).setValue(e.parameter.contactEmail || "");
+          break;
+        }
+      }
+      if (!exists) {
+        sheet.appendRow([
+          e.parameter.id || "",
+          siteName,
+          e.parameter.address || "",
+          e.parameter.city || "",
+          e.parameter.state || "",
+          e.parameter.zipCode || "",
+          e.parameter.contactName || "",
+          e.parameter.contactPhone || "",
+          e.parameter.contactEmail || ""
+        ]);
+      }
+    }
+
+    // ===== SERVICE REPORTS =====
+    else if (action === "saveServiceReport") {
+      var sheet = ss.getSheetByName("ServiceReports");
+      if (!sheet) {
+        sheet = ss.insertSheet("ServiceReports");
+        sheet.appendRow(["Timestamp", "EmpID", "EmpName", "Date", "SiteName", "InstructionFrom", "InspectedBy", "CustomerName", "Designation", "Phone", "Email", "WorkDone", "CompletionPct", "Remarks"]);
+      }
+      // Check if report exists for same empId+date, update if so
+      var data = sheet.getDataRange().getValues();
+      var targetEmpId = e.parameter.empId || "";
+      var targetDate = e.parameter.date || "";
+      var found = false;
+      for (var i = data.length - 1; i >= 1; i--) {
+        if (String(data[i][1]) === targetEmpId && String(data[i][3]) === targetDate) {
+          sheet.getRange(i + 1, 1).setValue(new Date().toLocaleString());
+          sheet.getRange(i + 1, 5).setValue(e.parameter.siteName || "");
+          sheet.getRange(i + 1, 6).setValue(e.parameter.instructionFrom || "");
+          sheet.getRange(i + 1, 7).setValue(e.parameter.inspectedBy || "");
+          sheet.getRange(i + 1, 8).setValue(e.parameter.customerName || "");
+          sheet.getRange(i + 1, 9).setValue(e.parameter.designation || "");
+          sheet.getRange(i + 1, 10).setValue(e.parameter.phone || "");
+          sheet.getRange(i + 1, 11).setValue(e.parameter.email || "");
+          sheet.getRange(i + 1, 12).setValue(e.parameter.workDone || "");
+          sheet.getRange(i + 1, 13).setValue(e.parameter.completionPct || "");
+          sheet.getRange(i + 1, 14).setValue(e.parameter.remarks || "");
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        sheet.appendRow([
+          new Date().toLocaleString(),
+          targetEmpId,
+          e.parameter.empName || "",
+          targetDate,
+          e.parameter.siteName || "",
+          e.parameter.instructionFrom || "",
+          e.parameter.inspectedBy || "",
+          e.parameter.customerName || "",
+          e.parameter.designation || "",
+          e.parameter.phone || "",
+          e.parameter.email || "",
+          e.parameter.workDone || "",
+          e.parameter.completionPct || "",
+          e.parameter.remarks || ""
+        ]);
       }
     }
 
