@@ -187,6 +187,27 @@ function doGet(e) {
     }
 
     // ===== SITES =====
+    else if (action === "addSiteGet") {
+      // Add site via GET (used for syncing custom sites)
+      var sheet = ss.getSheetByName("Sites");
+      if (!sheet) {
+        sheet = ss.insertSheet("Sites");
+        sheet.appendRow(["SiteID", "SiteName", "Address", "City", "State", "ZipCode", "ContactName", "ContactPhone", "ContactEmail"]);
+      }
+      var siteName = e.parameter.name || "";
+      if (siteName) {
+        var data = sheet.getDataRange().getValues();
+        var exists = false;
+        for (var i = 1; i < data.length; i++) {
+          if (String(data[i][1]).toLowerCase() === siteName.toLowerCase()) { exists = true; break; }
+        }
+        if (!exists) {
+          sheet.appendRow([e.parameter.id || "", siteName, "", "", "", "", "", "", ""]);
+        }
+      }
+      result = { status: "success", message: "Site added." };
+    }
+
     else if (action === "getSites") {
       var sheet = ss.getSheetByName("Sites");
       if (!sheet) {

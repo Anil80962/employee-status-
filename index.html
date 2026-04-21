@@ -1426,12 +1426,13 @@
                     // Sync any localStorage custom sites not yet in sheet
                     const customSites = JSON.parse(localStorage.getItem("customSites") || "[]");
                     const missing = customSites.filter(cs => cs.name && !sheetNames.has(cs.name.toLowerCase()));
-                    if (missing.length > 0) {
-                        missing.forEach(cs => {
-                            allSites.push({ name: cs.name, id: cs.id || "" });
-                            formPost({ action: "addSite", name: cs.name, id: cs.id || "" });
-                        });
+                    for (const cs of missing) {
+                        allSites.push({ name: cs.name, id: cs.id || "" });
+                        // Use GET to add site (handled by addSiteGet in doGet)
+                        const p = "action=addSiteGet&name=" + encodeURIComponent(cs.name) + "&id=" + encodeURIComponent(cs.id || "");
+                        try { await sheetFetch(p); } catch(e) {}
                     }
+                    if (missing.length > 0) console.log("Synced " + missing.length + " custom sites to sheet: " + missing.map(m=>m.name).join(", "));
                 } else {
                     // Sheet empty — keep DEFAULT_SITES + localStorage as fallback
                     DEFAULT_SITES.forEach(s => { window._siteDetails[s.name.toLowerCase()] = { name: s.name, id: s.id }; });
