@@ -1415,26 +1415,15 @@
                 window._siteDetails = {};
 
                 if (sheetSites.length > 0) {
-                    // Sheet has data — use it as the master list
-                    const sheetNames = new Set();
+                    // Sheet has data — use it as the ONLY source (single source of truth)
                     allSites = sheetSites.map(s => {
                         window._siteDetails[s.name.toLowerCase()] = s;
-                        sheetNames.add(s.name.toLowerCase());
                         return { name: s.name, id: s.id };
                     });
-
-                    // Sync any localStorage custom sites not yet in sheet
-                    const customSites = JSON.parse(localStorage.getItem("customSites") || "[]");
-                    const missing = customSites.filter(cs => cs.name && !sheetNames.has(cs.name.toLowerCase()));
-                    for (const cs of missing) {
-                        allSites.push({ name: cs.name, id: cs.id || "" });
-                        // Use GET to add site (handled by addSiteGet in doGet)
-                        const p = "action=addSiteGet&name=" + encodeURIComponent(cs.name) + "&id=" + encodeURIComponent(cs.id || "");
-                        try { await sheetFetch(p); } catch(e) {}
-                    }
-                    if (missing.length > 0) console.log("Synced " + missing.length + " custom sites to sheet: " + missing.map(m=>m.name).join(", "));
+                    // Clear localStorage custom sites — sheet is the master now
+                    localStorage.removeItem("customSites");
                 } else {
-                    // Sheet empty — keep DEFAULT_SITES + localStorage as fallback
+                    // Sheet empty — keep DEFAULT_SITES as fallback
                     DEFAULT_SITES.forEach(s => { window._siteDetails[s.name.toLowerCase()] = { name: s.name, id: s.id }; });
                 }
             } catch(e) {
