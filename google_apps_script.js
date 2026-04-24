@@ -438,11 +438,26 @@ function doPost(e) {
         sheet = ss.insertSheet("Employees");
         sheet.appendRow(["EmpID", "Name", "Role"]);
       }
-      sheet.appendRow([
-        e.parameter.empId || "",
-        e.parameter.empName || "",
-        e.parameter.role || ""
-      ]);
+      // Upsert by EmpID so calling addEmployee twice with the same id
+      // updates the row instead of creating a duplicate.
+      var data = sheet.getDataRange().getValues();
+      var targetId = e.parameter.empId || "";
+      var found = false;
+      for (var i = data.length - 1; i >= 1; i--) {
+        if (String(data[i][0]) === targetId) {
+          sheet.getRange(i + 1, 2).setValue(e.parameter.empName || "");
+          sheet.getRange(i + 1, 3).setValue(e.parameter.role || "");
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        sheet.appendRow([
+          targetId,
+          e.parameter.empName || "",
+          e.parameter.role || ""
+        ]);
+      }
     }
 
     else if (action === "updateWorkDone") {
@@ -663,15 +678,31 @@ function doPost(e) {
         sheet = ss.insertSheet("SerialNumbers");
         sheet.appendRow(["SerialNo", "ItemID", "ItemName", "Status", "SiteName", "IssuedTo", "Date"]);
       }
-      sheet.appendRow([
-        e.parameter.serialNo || "",
-        e.parameter.itemId || "",
-        e.parameter.itemName || "",
-        e.parameter.status || "Available",
-        "",
-        "",
-        new Date().toLocaleString()
-      ]);
+      // Upsert by SerialNo — adding the same serial twice updates the row.
+      var data = sheet.getDataRange().getValues();
+      var targetSN = e.parameter.serialNo || "";
+      var found = false;
+      for (var i = data.length - 1; i >= 1; i--) {
+        if (String(data[i][0]) === targetSN) {
+          sheet.getRange(i + 1, 2).setValue(e.parameter.itemId || "");
+          sheet.getRange(i + 1, 3).setValue(e.parameter.itemName || "");
+          sheet.getRange(i + 1, 4).setValue(e.parameter.status || "Available");
+          sheet.getRange(i + 1, 7).setValue(new Date().toLocaleString());
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        sheet.appendRow([
+          targetSN,
+          e.parameter.itemId || "",
+          e.parameter.itemName || "",
+          e.parameter.status || "Available",
+          "",
+          "",
+          new Date().toLocaleString()
+        ]);
+      }
     }
 
     else if (action === "updateSerialStatus") {
@@ -698,18 +729,39 @@ function doPost(e) {
         sheet = ss.insertSheet("Inventory");
         sheet.appendRow(["ItemID", "Name", "Category", "Qty", "MinStock", "Unit", "Location", "Description", "LastUpdated", "UpdatedBy"]);
       }
-      sheet.appendRow([
-        e.parameter.itemId || ("INV-" + Date.now()),
-        e.parameter.name || "",
-        e.parameter.category || "",
-        e.parameter.qty || "0",
-        e.parameter.minStock || "5",
-        e.parameter.unit || "pcs",
-        e.parameter.location || "",
-        e.parameter.description || "",
-        new Date().toLocaleString(),
-        e.parameter.updatedBy || ""
-      ]);
+      // Upsert by ItemID so re-adding the same item updates it in place.
+      var targetId = e.parameter.itemId || ("INV-" + Date.now());
+      var data = sheet.getDataRange().getValues();
+      var found = false;
+      for (var i = data.length - 1; i >= 1; i--) {
+        if (String(data[i][0]) === targetId) {
+          sheet.getRange(i + 1, 2).setValue(e.parameter.name || "");
+          sheet.getRange(i + 1, 3).setValue(e.parameter.category || "");
+          sheet.getRange(i + 1, 4).setValue(e.parameter.qty || "0");
+          sheet.getRange(i + 1, 5).setValue(e.parameter.minStock || "5");
+          sheet.getRange(i + 1, 6).setValue(e.parameter.unit || "pcs");
+          sheet.getRange(i + 1, 7).setValue(e.parameter.location || "");
+          sheet.getRange(i + 1, 8).setValue(e.parameter.description || "");
+          sheet.getRange(i + 1, 9).setValue(new Date().toLocaleString());
+          sheet.getRange(i + 1, 10).setValue(e.parameter.updatedBy || "");
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        sheet.appendRow([
+          targetId,
+          e.parameter.name || "",
+          e.parameter.category || "",
+          e.parameter.qty || "0",
+          e.parameter.minStock || "5",
+          e.parameter.unit || "pcs",
+          e.parameter.location || "",
+          e.parameter.description || "",
+          new Date().toLocaleString(),
+          e.parameter.updatedBy || ""
+        ]);
+      }
     }
 
     else if (action === "editInventory") {
