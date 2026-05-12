@@ -370,6 +370,47 @@ function doGet(e) {
       result = { status: "success", message: "Fluxgen Operations API running." };
     }
 
+    else if (action === "getCustomerSupport") {
+      var sheet = getCustomerSupportSheet_();
+      if (!sheet) {
+        result = { status: "success", data: [] };
+      } else {
+        var data = sheet.getDataRange().getValues();
+        var rows = [];
+        // Header row at index 0 is skipped. Expected column order:
+        // Client Name | ASSM PO Number | PO Date | PO Amount | AMC Start Date |
+        // AMC End Date | Days Remaining | Payment Terms | Scope of Work |
+        // No. of Visits Agreed | No. of days per visit | Visits Completed |
+        // Service Reports Submitted | Invoiced Portion | To Be Invoiced |
+        // Payment Received | Invoicing Dates | Service Visit Dates | Remarks
+        for (var i = 1; i < data.length; i++) {
+          if (!data[i][0] && !data[i][1]) continue; // skip blank rows
+          rows.push({
+            clientName: fmtCell_(data[i][0]),
+            poNumber: fmtCell_(data[i][1]),
+            poDate: fmtCell_(data[i][2]),
+            poAmount: fmtCell_(data[i][3]),
+            amcStartDate: fmtCell_(data[i][4]),
+            amcEndDate: fmtCell_(data[i][5]),
+            // column 6 (Days Remaining) is computed client-side, skipped
+            paymentTerms: fmtCell_(data[i][7]),
+            scopeOfWork: fmtCell_(data[i][8]),
+            visitsAgreed: fmtCell_(data[i][9]),
+            daysPerVisit: fmtCell_(data[i][10]),
+            visitsCompleted: fmtCell_(data[i][11]),
+            reportsSubmitted: fmtCell_(data[i][12]),
+            invoicedPortion: fmtCell_(data[i][13]),
+            toBeInvoiced: fmtCell_(data[i][14]),
+            paymentReceived: fmtCell_(data[i][15]),
+            invoicingDates: fmtCell_(data[i][16]),
+            serviceVisitDates: fmtCell_(data[i][17]),
+            remarks: fmtCell_(data[i][18])
+          });
+        }
+        result = { status: "success", data: rows };
+      }
+    }
+
   } catch (err) {
     result = { status: "error", message: err.toString() };
   }
@@ -841,6 +882,50 @@ function doPost(e) {
       }
     }
 
+    else if (action === "saveCustomerSupport") {
+      var sheet = getCustomerSupportSheet_();
+      if (!sheet) {
+        return ContentService
+          .createTextOutput(JSON.stringify({ status: "error", message: "CustomerSupport sheet not found" }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+      var p = e.parameter;
+      var clientName = p.clientName || "";
+      var poNumber = p.poNumber || "";
+      var values = [
+        clientName,
+        poNumber,
+        p.poDate || "",
+        p.poAmount || "",
+        p.amcStartDate || "",
+        p.amcEndDate || "",
+        "", // Days Remaining (computed)
+        p.paymentTerms || "",
+        p.scopeOfWork || "",
+        p.visitsAgreed || "",
+        p.daysPerVisit || "",
+        p.visitsCompleted || "",
+        p.reportsSubmitted || "",
+        p.invoicedPortion || "",
+        p.toBeInvoiced || "",
+        p.paymentReceived || "",
+        p.invoicingDates || "",
+        p.serviceVisitDates || "",
+        p.remarks || ""
+      ];
+      // Upsert by Client Name + PO Number
+      var data = sheet.getDataRange().getValues();
+      var found = false;
+      for (var i = data.length - 1; i >= 1; i--) {
+        if (String(data[i][0]) === clientName && String(data[i][1]) === poNumber) {
+          sheet.getRange(i + 1, 1, 1, values.length).setValues([values]);
+          found = true;
+          break;
+        }
+      }
+      if (!found) sheet.appendRow(values);
+    }
+
     return ContentService
       .createTextOutput(JSON.stringify({ status: "success" }))
       .setMimeType(ContentService.MimeType.JSON);
@@ -850,4 +935,37 @@ function doPost(e) {
       .createTextOutput(JSON.stringify({ status: "error", message: error.toString() }))
       .setMimeType(ContentService.MimeType.JSON);
   }
+}
+
+// === Customer Support helpers ============================================
+//
+// The CustomerSupport sheet can live in the bound spreadsheet (a tab named
+// "CustomerSupport") OR in a separate spreadsheet file. If it lives elsewhere,
+// set CUSTOMER_SUPPORT_SHEET_ID below to that spreadsheet's ID (the long
+// string in its URL). Leave it empty to use the bound spreadsheet.
+var CUSTOMER_SUPPORT_SHEET_ID = "";
+var CUSTOMER_SUPPORT_SHEET_NAME = "CustomerSupport";
+
+function getCustomerSupportSheet_() {
+  var ss;
+  if (CUSTOMER_SUPPORT_SHEET_ID && CUSTOMER_SUPPORT_SHEET_ID.length > 5) {
+    try {
+      ss = SpreadsheetApp.openById(CUSTOMER_SUPPORT_SHEET_ID);
+    } catch (e) {
+      return null;
+    }
+  } else {
+    ss = SpreadsheetApp.getActiveSpreadsheet();
+  }
+  return ss.getSheetByName(CUSTOMER_SUPPORT_SHEET_NAME);
+}
+
+function fmtCell_(v) {
+  if (v === null || v === undefined) return "";
+  if (v instanceof Date) {
+    var d = v;
+    var pad = function(n) { return n < 10 ? "0" + n : "" + n; };
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  }
+  return String(v);
 }

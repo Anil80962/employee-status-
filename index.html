@@ -354,6 +354,7 @@
             <button class="tab-btn" id="manageTab" onclick="switchTab('manage')" style="display:none;">Manage Employees</button>
             <button class="tab-btn" id="usersTab" onclick="switchTab('users')" style="display:none;">Manage Users</button>
             <button class="tab-btn" id="inventoryTab" onclick="switchTab('inventory')" style="display:none;">Inventory</button>
+            <button class="tab-btn" id="customerSupportTab" onclick="switchTab('customerSupport')" style="display:none;">Customer Support</button>
         </div>
 
         <!-- UPDATE TAB -->
@@ -1044,6 +1045,65 @@
             </div>
         </div>
 
+        <!-- CUSTOMER SUPPORT TAB (Super Admin only) -->
+        <div class="tab-content" id="tabCustomerSupport" style="display:none;">
+            <div class="manage-section" style="max-width:1400px;">
+                <div class="overview-header">
+                    <div class="section-title" style="margin:0;">Customer Support — AMC Contracts</div>
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                        <input type="text" id="csSearch" placeholder="Search client / PO / scope..." oninput="renderCustomerSupport()" style="padding:8px 14px;border:2px solid #2c5364;border-radius:8px;font-size:13px;outline:none;width:220px;">
+                        <select id="csFilter" onchange="renderCustomerSupport()" style="padding:8px 12px;border:2px solid #2c5364;border-radius:8px;font-size:13px;font-weight:600;color:#2c5364;outline:none;">
+                            <option value="all">All Contracts</option>
+                            <option value="active">Active</option>
+                            <option value="expiring">Expiring &le; 30 days</option>
+                            <option value="expired">Expired</option>
+                        </select>
+                        <button onclick="loadCustomerSupport()" title="Refresh" style="padding:8px 12px;background:#2c5364;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600;">&#x21bb; Refresh</button>
+                    </div>
+                </div>
+
+                <!-- Summary stats -->
+                <div class="stats-row" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-top:16px;">
+                    <div class="stat-card"><div class="stat-num" id="csStatTotal" style="color:#2c5364;">0</div><div class="stat-label">Total Contracts</div></div>
+                    <div class="stat-card"><div class="stat-num" id="csStatActive" style="color:#27ae60;">0</div><div class="stat-label">Active</div></div>
+                    <div class="stat-card"><div class="stat-num" id="csStatExpiring" style="color:#e67e22;">0</div><div class="stat-label">Expiring &le; 30d</div></div>
+                    <div class="stat-card"><div class="stat-num" id="csStatExpired" style="color:#e74c3c;">0</div><div class="stat-label">Expired</div></div>
+                </div>
+
+                <!-- Table -->
+                <div class="emp-list-table" style="margin-top:18px;overflow-x:auto;">
+                    <table style="min-width:1300px;">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Client</th>
+                                <th>ASSM PO #</th>
+                                <th>PO Date</th>
+                                <th>PO Amount</th>
+                                <th>AMC Start</th>
+                                <th>AMC End</th>
+                                <th>Days Left</th>
+                                <th>Payment Terms</th>
+                                <th>Scope</th>
+                                <th>Visits<br>(Done/Agreed)</th>
+                                <th>Days/Visit</th>
+                                <th>Reports<br>Submitted</th>
+                                <th>Invoiced</th>
+                                <th>To Be<br>Invoiced</th>
+                                <th>Payment<br>Received</th>
+                                <th>Invoicing<br>Dates</th>
+                                <th>Service Visit<br>Dates</th>
+                                <th>Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody id="csBody">
+                            <tr><td colspan="19" class="no-data">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
     <!-- TAKE INVENTORY MODAL -->
     <div class="modal-overlay" id="invIssueModal" style="display:none;">
         <div class="modal-box" style="max-width:450px;">
@@ -1372,6 +1432,7 @@
             document.getElementById("manageTab").style.display = isAdmin ? "inline-block" : "none";
             document.getElementById("usersTab").style.display = isSuperAdmin ? "inline-block" : "none";
             document.getElementById("inventoryTab").style.display = "inline-block";
+            document.getElementById("customerSupportTab").style.display = isSuperAdmin ? "inline-block" : "none";
             // Hide admin-only inventory controls for non-admins
             const invAdminEls = document.querySelectorAll(".inv-admin-only");
             invAdminEls.forEach(el => {
@@ -1624,7 +1685,7 @@
         // ===== TABS =====
         function switchTab(tab) {
             document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-            ["tabUpdate","tabWeekly","tabOverview","tabDownload","tabManage","tabUsers","tabInventory"].forEach(id => document.getElementById(id).style.display = "none");
+            ["tabUpdate","tabWeekly","tabOverview","tabDownload","tabManage","tabUsers","tabInventory","tabCustomerSupport"].forEach(id => document.getElementById(id).style.display = "none");
 
             if (tab === "update") {
                 document.querySelectorAll(".tab-btn")[0].classList.add("active");
@@ -1666,6 +1727,10 @@
                 document.getElementById("inventoryTab").classList.add("active");
                 document.getElementById("tabInventory").style.display = "block";
                 loadInventory();
+            } else if (tab === "customerSupport") {
+                document.getElementById("customerSupportTab").classList.add("active");
+                document.getElementById("tabCustomerSupport").style.display = "block";
+                loadCustomerSupport();
             }
         }
 
@@ -2885,6 +2950,139 @@
                 preview.style.border = "1.5px solid #27ae60";
             };
             reader.readAsDataURL(file);
+        }
+
+        // ===== CUSTOMER SUPPORT (AMC Contracts) =====
+        let _customerSupportData = [];
+
+        async function loadCustomerSupport() {
+            const body = document.getElementById("csBody");
+            body.innerHTML = '<tr><td colspan="19" class="no-data"><span class="spinner spinner-dark"></span> Loading...</td></tr>';
+            try {
+                const result = await sheetFetch("action=getCustomerSupport");
+                _customerSupportData = result.data || [];
+                renderCustomerSupport();
+            } catch(err) {
+                body.innerHTML = '<tr><td colspan="19" class="no-data">Failed to load: ' + (err.message || err) + '</td></tr>';
+            }
+        }
+
+        function _csDaysRemaining(endDateStr) {
+            if (!endDateStr) return null;
+            const s = String(endDateStr).trim();
+            if (!s) return null;
+            let dt = new Date(s);
+            if (isNaN(dt.getTime())) {
+                // try dd/mm/yyyy or dd-mm-yyyy
+                const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+                if (m) {
+                    let y = parseInt(m[3], 10);
+                    if (y < 100) y += 2000;
+                    dt = new Date(y, parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+                }
+            }
+            if (isNaN(dt.getTime())) return null;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const end = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+            return Math.round((end - today) / 86400000);
+        }
+
+        function _csFmtDate(s) {
+            if (!s) return "";
+            const str = String(s).trim();
+            // already yyyy-mm-dd or similar — keep first 10 chars if it looks ISO
+            if (/^\d{4}-\d{2}-\d{2}/.test(str)) return str.substring(0, 10);
+            return str;
+        }
+
+        function _csEscape(s) {
+            if (s === null || s === undefined) return "";
+            return String(s)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;");
+        }
+
+        function renderCustomerSupport() {
+            const search = (document.getElementById("csSearch").value || "").toLowerCase().trim();
+            const filter = document.getElementById("csFilter").value;
+            const tbody = document.getElementById("csBody");
+
+            // Compute stats (use unfiltered data)
+            let total = 0, active = 0, expiring = 0, expired = 0;
+            for (const r of _customerSupportData) {
+                total++;
+                const d = _csDaysRemaining(r.amcEndDate);
+                if (d === null) continue;
+                if (d < 0) expired++;
+                else {
+                    active++;
+                    if (d <= 30) expiring++;
+                }
+            }
+            document.getElementById("csStatTotal").textContent = total;
+            document.getElementById("csStatActive").textContent = active;
+            document.getElementById("csStatExpiring").textContent = expiring;
+            document.getElementById("csStatExpired").textContent = expired;
+
+            // Apply search + filter
+            const rows = _customerSupportData.filter(r => {
+                if (search) {
+                    const hay = (r.clientName + " " + r.poNumber + " " + r.scopeOfWork).toLowerCase();
+                    if (!hay.includes(search)) return false;
+                }
+                if (filter !== "all") {
+                    const d = _csDaysRemaining(r.amcEndDate);
+                    if (filter === "expired" && (d === null || d >= 0)) return false;
+                    if (filter === "expiring" && (d === null || d < 0 || d > 30)) return false;
+                    if (filter === "active" && (d === null || d < 0)) return false;
+                }
+                return true;
+            });
+
+            if (rows.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="19" class="no-data">No contracts match.</td></tr>';
+                return;
+            }
+
+            let html = "";
+            rows.forEach((r, idx) => {
+                const d = _csDaysRemaining(r.amcEndDate);
+                let daysCell;
+                if (d === null) {
+                    daysCell = '<span style="color:#888;">—</span>';
+                } else if (d < 0) {
+                    daysCell = '<span style="color:#e74c3c;font-weight:700;">Expired ' + Math.abs(d) + 'd</span>';
+                } else if (d <= 30) {
+                    daysCell = '<span style="color:#e67e22;font-weight:700;">' + d + ' d</span>';
+                } else {
+                    daysCell = '<span style="color:#27ae60;font-weight:600;">' + d + ' d</span>';
+                }
+                html += '<tr>' +
+                    '<td>' + (idx + 1) + '</td>' +
+                    '<td style="font-weight:600;">' + _csEscape(r.clientName) + '</td>' +
+                    '<td>' + _csEscape(r.poNumber) + '</td>' +
+                    '<td>' + _csEscape(_csFmtDate(r.poDate)) + '</td>' +
+                    '<td>' + _csEscape(r.poAmount) + '</td>' +
+                    '<td>' + _csEscape(_csFmtDate(r.amcStartDate)) + '</td>' +
+                    '<td>' + _csEscape(_csFmtDate(r.amcEndDate)) + '</td>' +
+                    '<td>' + daysCell + '</td>' +
+                    '<td>' + _csEscape(r.paymentTerms) + '</td>' +
+                    '<td style="max-width:220px;white-space:normal;">' + _csEscape(r.scopeOfWork) + '</td>' +
+                    '<td style="text-align:center;">' + _csEscape(r.visitsCompleted || "—") + ' / ' + _csEscape(r.visitsAgreed || "—") + '</td>' +
+                    '<td style="text-align:center;">' + _csEscape(r.daysPerVisit) + '</td>' +
+                    '<td style="text-align:center;">' + _csEscape(r.reportsSubmitted) + '</td>' +
+                    '<td>' + _csEscape(r.invoicedPortion) + '</td>' +
+                    '<td>' + _csEscape(r.toBeInvoiced) + '</td>' +
+                    '<td>' + _csEscape(r.paymentReceived) + '</td>' +
+                    '<td style="max-width:160px;white-space:normal;">' + _csEscape(r.invoicingDates) + '</td>' +
+                    '<td style="max-width:160px;white-space:normal;">' + _csEscape(r.serviceVisitDates) + '</td>' +
+                    '<td style="max-width:200px;white-space:normal;">' + _csEscape(r.remarks) + '</td>' +
+                '</tr>';
+            });
+            tbody.innerHTML = html;
         }
 
         // ===== INVENTORY MANAGEMENT =====
