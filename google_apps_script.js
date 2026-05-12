@@ -377,34 +377,36 @@ function doGet(e) {
       } else {
         var data = sheet.getDataRange().getValues();
         var rows = [];
-        // Header row at index 0 is skipped. Expected column order:
-        // Client Name | ASSM PO Number | PO Date | PO Amount | AMC Start Date |
-        // AMC End Date | Days Remaining | Payment Terms | Scope of Work |
-        // No. of Visits Agreed | No. of days per visit | Visits Completed |
-        // Service Reports Submitted | Invoiced Portion | To Be Invoiced |
-        // Payment Received | Invoicing Dates | Service Visit Dates | Remarks
+        // Header row at index 0 is skipped. Expected column order (20 cols):
+        // # | Client Name | ASSM PO Number | PO Date | PO Amount |
+        // AMC Start Date | AMC End Date | Days Remaining | Payment Terms |
+        // Scope of Work | No. of Visits Agreed | No. of days per visit |
+        // Visits Completed | Service Reports Submitted | Invoiced Portion |
+        // To Be Invoiced | Payment Received | Invoicing Dates |
+        // Service Visit Dates | Remarks
         for (var i = 1; i < data.length; i++) {
-          if (!data[i][0] && !data[i][1]) continue; // skip blank rows
+          // Skip blank rows — if both Client Name and PO # are empty
+          if (!data[i][1] && !data[i][2]) continue;
           rows.push({
-            clientName: fmtCell_(data[i][0]),
-            poNumber: fmtCell_(data[i][1]),
-            poDate: fmtCell_(data[i][2]),
-            poAmount: fmtCell_(data[i][3]),
-            amcStartDate: fmtCell_(data[i][4]),
-            amcEndDate: fmtCell_(data[i][5]),
-            // column 6 (Days Remaining) is computed client-side, skipped
-            paymentTerms: fmtCell_(data[i][7]),
-            scopeOfWork: fmtCell_(data[i][8]),
-            visitsAgreed: fmtCell_(data[i][9]),
-            daysPerVisit: fmtCell_(data[i][10]),
-            visitsCompleted: fmtCell_(data[i][11]),
-            reportsSubmitted: fmtCell_(data[i][12]),
-            invoicedPortion: fmtCell_(data[i][13]),
-            toBeInvoiced: fmtCell_(data[i][14]),
-            paymentReceived: fmtCell_(data[i][15]),
-            invoicingDates: fmtCell_(data[i][16]),
-            serviceVisitDates: fmtCell_(data[i][17]),
-            remarks: fmtCell_(data[i][18])
+            clientName: fmtCell_(data[i][1]),
+            poNumber: fmtCell_(data[i][2]),
+            poDate: fmtCell_(data[i][3]),
+            poAmount: fmtCell_(data[i][4]),
+            amcStartDate: fmtCell_(data[i][5]),
+            amcEndDate: fmtCell_(data[i][6]),
+            // column 7 (Days Remaining) is computed client-side, skipped
+            paymentTerms: fmtCell_(data[i][8]),
+            scopeOfWork: fmtCell_(data[i][9]),
+            visitsAgreed: fmtCell_(data[i][10]),
+            daysPerVisit: fmtCell_(data[i][11]),
+            visitsCompleted: fmtCell_(data[i][12]),
+            reportsSubmitted: fmtCell_(data[i][13]),
+            invoicedPortion: fmtCell_(data[i][14]),
+            toBeInvoiced: fmtCell_(data[i][15]),
+            paymentReceived: fmtCell_(data[i][16]),
+            invoicingDates: fmtCell_(data[i][17]),
+            serviceVisitDates: fmtCell_(data[i][18]),
+            remarks: fmtCell_(data[i][19])
           });
         }
         result = { status: "success", data: rows };
@@ -892,7 +894,30 @@ function doPost(e) {
       var p = e.parameter;
       var clientName = p.clientName || "";
       var poNumber = p.poNumber || "";
+      // Upsert by Client Name + PO Number (matched against cols B + C)
+      var data = sheet.getDataRange().getValues();
+      var foundRowIdx = -1;
+      for (var i = data.length - 1; i >= 1; i--) {
+        if (String(data[i][1]) === clientName && String(data[i][2]) === poNumber) {
+          foundRowIdx = i;
+          break;
+        }
+      }
+      // Column A is S.No — keep existing value on update, auto-number on append
+      var serialNo;
+      if (foundRowIdx >= 0) {
+        serialNo = data[foundRowIdx][0];
+      } else {
+        // Next S.No = max existing + 1, defaulting to 1
+        var maxSno = 0;
+        for (var j = 1; j < data.length; j++) {
+          var n = parseInt(data[j][0], 10);
+          if (!isNaN(n) && n > maxSno) maxSno = n;
+        }
+        serialNo = maxSno + 1;
+      }
       var values = [
+        serialNo,
         clientName,
         poNumber,
         p.poDate || "",
@@ -913,17 +938,11 @@ function doPost(e) {
         p.serviceVisitDates || "",
         p.remarks || ""
       ];
-      // Upsert by Client Name + PO Number
-      var data = sheet.getDataRange().getValues();
-      var found = false;
-      for (var i = data.length - 1; i >= 1; i--) {
-        if (String(data[i][0]) === clientName && String(data[i][1]) === poNumber) {
-          sheet.getRange(i + 1, 1, 1, values.length).setValues([values]);
-          found = true;
-          break;
-        }
+      if (foundRowIdx >= 0) {
+        sheet.getRange(foundRowIdx + 1, 1, 1, values.length).setValues([values]);
+      } else {
+        sheet.appendRow(values);
       }
-      if (!found) sheet.appendRow(values);
     }
 
     return ContentService
@@ -943,8 +962,8 @@ function doPost(e) {
 // "CustomerSupport") OR in a separate spreadsheet file. If it lives elsewhere,
 // set CUSTOMER_SUPPORT_SHEET_ID below to that spreadsheet's ID (the long
 // string in its URL). Leave it empty to use the bound spreadsheet.
-var CUSTOMER_SUPPORT_SHEET_ID = "";
-var CUSTOMER_SUPPORT_SHEET_NAME = "CustomerSupport";
+var CUSTOMER_SUPPORT_SHEET_ID = "1aY-lsS8WXiGB5irojcSh0mEgkV-DXHR6prySkYfDrR8";
+var CUSTOMER_SUPPORT_SHEET_NAME = "AMC Tracker";
 
 function getCustomerSupportSheet_() {
   var ss;
