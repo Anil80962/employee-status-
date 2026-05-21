@@ -1,8 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Keep libsodium as an external package so Node require() resolves the CJS
-  // build instead of the broken ESM build (which has a missing sibling import).
+  // Keep libsodium external so Node require() uses the CJS build (not the
+  // broken ESM build). Both keys needed: Next.js 14.x uses the experimental
+  // key; Next.js 15+ uses the stable top-level key.
+  experimental: {
+    serverComponentsExternalPackages: ["libsodium-wrappers"],
+  },
   serverExternalPackages: ["libsodium-wrappers"],
 };
 
