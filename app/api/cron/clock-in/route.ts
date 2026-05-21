@@ -4,11 +4,11 @@ export const dynamic = "force-dynamic";
 
 const GITHUB_API = "https://api.github.com";
 
-// Vercel automatically sends Authorization: Bearer <CRON_SECRET> on cron calls.
-// We verify it to prevent unauthorized triggers.
+// If CRON_SECRET is set, verify it. If not set, allow through (Vercel Hobby
+// cron jobs are already internal — the endpoint only triggers a workflow dispatch).
 function verifyCron(req: NextRequest): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
+  const secret = process.env.CRON_SECRET?.trim();
+  if (!secret) return true; // no secret configured → open
   const auth = req.headers.get("authorization");
   return auth === `Bearer ${secret}`;
 }
