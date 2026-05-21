@@ -45,9 +45,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "ADMIN_PASSWORD not configured" }, { status: 500 });
     }
 
-    const providedPassword = req.headers.get("x-admin-password");
-    // Accept __verified__ token (set by client after login) or actual password
-    if (providedPassword !== "__verified__" && providedPassword !== adminPassword) {
+    const providedPassword = (req.headers.get("x-admin-password") ?? "").trim();
+    const cleanAdmin = adminPassword.replace(/^﻿/, "").trim();
+    if (providedPassword !== cleanAdmin) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
