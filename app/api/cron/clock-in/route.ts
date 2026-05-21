@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getGitHubToken, getRepo, GITHUB_API } from "@/lib/github";
 
 export const dynamic = "force-dynamic";
-
-const GITHUB_API = "https://api.github.com";
 
 // If CRON_SECRET is set, verify it. If not set, allow through (Vercel Hobby
 // cron jobs are already internal — the endpoint only triggers a workflow dispatch).
@@ -18,9 +17,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const token = process.env.GITHUB_TOKEN;
-  const repo  = process.env.GITHUB_REPO;
-  if (!token || !repo) {
+  let token: string;
+  let repo: string;
+  try {
+    token = getGitHubToken();
+    repo = getRepo();
+  } catch {
     return NextResponse.json({ error: "GITHUB_TOKEN or GITHUB_REPO not configured" }, { status: 500 });
   }
 

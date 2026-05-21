@@ -1,27 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getEmployeesFile, saveEmployeesFile, type Employee } from "@/lib/employees";
+import { getGitHubHeaders, getRepo, GITHUB_API } from "@/lib/github";
 
 export const dynamic = "force-dynamic";
-
-const GITHUB_API = "https://api.github.com";
-
-function getGitHubHeaders() {
-  const token = process.env.GITHUB_TOKEN;
-  if (!token) throw new Error("GITHUB_TOKEN not configured");
-  return {
-    Authorization: `Bearer ${token}`,
-    Accept: "application/vnd.github+json",
-    "X-GitHub-Api-Version": "2022-11-28",
-    "User-Agent": "asanify-dashboard/1.0",
-    "Content-Type": "application/json",
-  };
-}
-
-function getRepo() {
-  const repo = process.env.GITHUB_REPO;
-  if (!repo) throw new Error("GITHUB_REPO not configured");
-  return repo;
-}
 
 async function getRepoPublicKey(repo: string, headers: Record<string, string>) {
   const res = await fetch(`${GITHUB_API}/repos/${repo}/actions/secrets/public-key`, { headers });

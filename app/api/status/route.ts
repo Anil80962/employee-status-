@@ -1,25 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getGitHubHeaders, getRepo, GITHUB_API } from "@/lib/github";
 
 export const dynamic = "force-dynamic";
-
-const GITHUB_API = "https://api.github.com";
-
-function getHeaders() {
-  const token = process.env.GITHUB_TOKEN;
-  if (!token) throw new Error("GITHUB_TOKEN not configured");
-  return {
-    Authorization: `Bearer ${token}`,
-    Accept: "application/vnd.github+json",
-    "X-GitHub-Api-Version": "2022-11-28",
-    "User-Agent": "asanify-dashboard/1.0",
-  };
-}
-
-function getRepo() {
-  const repo = process.env.GITHUB_REPO;
-  if (!repo) throw new Error("GITHUB_REPO not configured");
-  return repo;
-}
 
 /** Get today's date string in IST (YYYY-MM-DD) */
 function getTodayIST(): string {
@@ -128,7 +110,7 @@ function extractClockTime(job: WorkflowJob, jobStartedAt: string | null): string
 
 export async function GET(req: NextRequest) {
   try {
-    const headers = getHeaders();
+    const headers = getGitHubHeaders();
     const repo = getRepo();
     const { searchParams } = new URL(req.url);
     const wantRuns = searchParams.get("runs") === "1";

@@ -1,26 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getGitHubHeaders, getRepo, GITHUB_API } from "@/lib/github";
 
 export const dynamic = "force-dynamic";
-
-const GITHUB_API = "https://api.github.com";
-
-function getGitHubHeaders() {
-  const token = process.env.GITHUB_TOKEN;
-  if (!token) throw new Error("GITHUB_TOKEN not configured");
-  return {
-    Authorization: `Bearer ${token}`,
-    Accept: "application/vnd.github+json",
-    "X-GitHub-Api-Version": "2022-11-28",
-    "User-Agent": "asanify-dashboard/1.0",
-    "Content-Type": "application/json",
-  };
-}
-
-function getRepo() {
-  const repo = process.env.GITHUB_REPO;
-  if (!repo) throw new Error("GITHUB_REPO not configured");
-  return repo;
-}
 
 // Discover the workflow file name (look for clock-in related workflows)
 async function findWorkflowId(

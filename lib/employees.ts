@@ -1,4 +1,4 @@
-const GITHUB_API = "https://api.github.com";
+import { GITHUB_API } from "@/lib/github";
 
 export interface Employee {
   id: string;
