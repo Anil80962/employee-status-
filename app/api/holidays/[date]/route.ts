@@ -24,7 +24,9 @@ async function getHolidaysFile(
   }
   const data = await res.json() as GitHubFileContent;
   const decoded = Buffer.from(data.content, "base64").toString("utf-8");
-  return { holidays: JSON.parse(decoded) as Holiday[], sha: data.sha };
+  const parsed = JSON.parse(decoded);
+  const list: Holiday[] = Array.isArray(parsed) ? parsed : (parsed.holidays ?? []);
+  return { holidays: list, sha: data.sha };
 }
 
 export async function DELETE(
