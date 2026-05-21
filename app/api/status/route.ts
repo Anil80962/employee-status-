@@ -58,7 +58,12 @@ async function fetchEmployees(repo: string, headers: Record<string, string>): Pr
     if (!res.ok) return [];
     const data = await res.json() as { content: string };
     const decoded = Buffer.from(data.content, "base64").toString("utf-8");
-    return JSON.parse(decoded) as Employee[];
+    const parsed = JSON.parse(decoded);
+    // Support both old flat array format and new {employees:[...]} object format
+    const list: Employee[] = Array.isArray(parsed) ? parsed : (parsed.employees ?? []);
+    return list.map((e: Employee | string) =>
+      typeof e === "string" ? { id: e, name: e } : e
+    );
   } catch {
     return [];
   }
@@ -70,8 +75,12 @@ async function fetchHolidays(repo: string, headers: Record<string, string>): Pro
     if (!res.ok) return [];
     const data = await res.json() as { content: string };
     const decoded = Buffer.from(data.content, "base64").toString("utf-8");
-    const holidays = JSON.parse(decoded) as Array<{ date: string; label: string }>;
-    return holidays.map((h) => h.date);
+    const parsed = JSON.parse(decoded);
+    // Support both old flat string array and new {holidays:[{date,label}]} format
+    const list: Array<string | { date: string }> = Array.isArray(parsed)
+      ? parsed
+      : (parsed.holidays ?? []);
+    return list.map((h) => (typeof h === "string" ? h : h.date));
   } catch {
     return [];
   }
