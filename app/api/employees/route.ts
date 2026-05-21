@@ -11,7 +11,8 @@ async function getRepoPublicKey(repo: string, headers: Record<string, string>) {
 }
 
 async function encryptSecret(publicKey: string, secretValue: string): Promise<string> {
-  const sodium = await import("libsodium-wrappers");
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const sodium = require("libsodium-wrappers");
   await sodium.ready;
   const encryptedBytes = sodium.crypto_box_seal(
     Buffer.from(secretValue, "utf-8"),
