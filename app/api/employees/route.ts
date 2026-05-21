@@ -10,15 +10,34 @@ async function getRepoPublicKey(repo: string, headers: Record<string, string>) {
   return res.json() as Promise<{ key_id: string; key: string }>;
 }
 
-async function encryptSecret(publicKey: string, secretValue: string): Promise<string> {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const sodium = require("libsodium-wrappers");
-  await sodium.ready;
-  const encryptedBytes = sodium.crypto_box_seal(
-    Buffer.from(secretValue, "utf-8"),
-    Buffer.from(publicKey, "base64")
-  );
-  return Buffer.from(encryptedBytes).toString("base64");
+// Pure-JS implementation of NaCl crypto_box_seal (sealed box).
+// Uses tweetnacl (X25519 DH + XSalsa20-Poly1305) + @noble/hashes (Blake2b nonce).
+// No native modules — works on any JS runtime including Vercel Edge/Lambda.
+async function encryptSecret(publicKeyB64: string, secretValue: string): Promise<string> {
+  const nacl = (await import("tweetnacl")).default;
+  const { blake2b } = await import("@noble/hashes/blake2.js");
+
+  const recipientPK = new Uint8Array(Buffer.from(publicKeyB64, "base64"));
+  const message     = new Uint8Array(Buffer.from(secretValue, "utf-8"));
+  const ephemeral   = nacl.box.keyPair();
+
+  // Nonce = Blake2b-256(ephemeral_pk || recipient_pk)[0:24]
+  const nonceInput = new Uint8Array(64);
+  nonceInput.set(ephemeral.publicKey, 0);
+  nonceInput.set(recipientPK, 32);
+  const nonce = blake2b(nonceInput, { dkLen: 24 });
+
+  // Shared key via X25519 + HSalsa20 (nacl.box.before)
+  const sharedKey = nacl.box.before(recipientPK, ephemeral.secretKey);
+
+  // Encrypt with XSalsa20-Poly1305
+  const encrypted = nacl.secretbox(message, nonce, sharedKey);
+
+  // Sealed box = ephemeral_pk (32 bytes) || mac+ciphertext
+  const result = new Uint8Array(32 + encrypted.length);
+  result.set(ephemeral.publicKey, 0);
+  result.set(encrypted, 32);
+  return Buffer.from(result).toString("base64");
 }
 
 async function putSecret(
