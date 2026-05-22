@@ -1070,6 +1070,7 @@
                     <div class="stat-card"><div class="stat-num" id="csStatActive" style="color:#27ae60;">0</div><div class="stat-label">Active</div></div>
                     <div class="stat-card"><div class="stat-num" id="csStatExpiring" style="color:#e67e22;">0</div><div class="stat-label">Expiring &le; 30d</div></div>
                     <div class="stat-card"><div class="stat-num" id="csStatExpired" style="color:#e74c3c;">0</div><div class="stat-label">Expired</div></div>
+                    <div class="stat-card"><div class="stat-num" id="csStatPoAmount" style="color:#1a6b8a;font-size:18px;">₹0</div><div class="stat-label">PO Amount (Active)</div></div>
                     <div class="stat-card"><div class="stat-num" id="csStatCollected" style="color:#6c3483;font-size:18px;">₹0</div><div class="stat-label">Collected (Active)</div></div>
                 </div>
 
@@ -3015,7 +3016,7 @@
             const tbody = document.getElementById("csBody");
 
             // Compute stats (use unfiltered data)
-            let total = 0, active = 0, expiring = 0, expired = 0, collected = 0;
+            let total = 0, active = 0, expiring = 0, expired = 0, collected = 0, poAmount = 0;
             for (const r of _customerSupportData) {
                 total++;
                 const d = _csDaysRemaining(r.amcEndDate);
@@ -3024,15 +3025,18 @@
                 else {
                     active++;
                     if (d <= 30) expiring++;
-                    // Sum paymentReceived only for active (non-expired) contracts
+                    // Sum only for active (non-expired) contracts
                     const amt = parseFloat(String(r.paymentReceived).replace(/[₹,\s]/g, "")) || 0;
                     collected += amt;
+                    const po = parseFloat(String(r.poAmount).replace(/[₹,\s]/g, "")) || 0;
+                    poAmount += po;
                 }
             }
             document.getElementById("csStatTotal").textContent = total;
             document.getElementById("csStatActive").textContent = active;
             document.getElementById("csStatExpiring").textContent = expiring;
             document.getElementById("csStatExpired").textContent = expired;
+            document.getElementById("csStatPoAmount").textContent = "₹" + poAmount.toLocaleString("en-IN");
             document.getElementById("csStatCollected").textContent = "₹" + collected.toLocaleString("en-IN");
 
             // Apply search + filter
