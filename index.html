@@ -1219,6 +1219,7 @@
     <script>
         // ===== CONFIG =====
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw56mogmOpMbayoil4lFFTGGpUmyBkvQcHRUMkUQzUZuujmhbA7UAAsNHl4WyhjTuzg3A/exec";
+        const CS_URL     = "https://script.google.com/a/macros/fluxgentech.com/s/AKfycbz7xeeGL8E3M6Z3f7BJ5rDBxSgt6xnP9a8GX17f35EWAca5p4fuVAWKdQgDmh-_7amf/exec";
 
         // Super Admin (cannot be deleted)
         const SUPER_ADMIN = "anil";
@@ -1276,8 +1277,8 @@
         }
 
         // ===== FETCH DATA FROM GOOGLE SHEET =====
-        async function sheetFetch(params) {
-            const url = SCRIPT_URL + "?" + params;
+        async function sheetFetch(params, baseUrl) {
+            const url = (baseUrl || SCRIPT_URL) + "?" + params;
 
             // Try fetch first
             try {
@@ -1305,13 +1306,13 @@
         }
 
         // ===== FORM POST (writes to Google Sheet) =====
-        function formPost(data) {
+        function formPost(data, baseUrl) {
             return new Promise((resolve) => {
                 // Send action as URL param so it survives redirects
                 const actionParam = data.action ? "?action=" + encodeURIComponent(data.action) : "";
                 const form = document.createElement("form");
                 form.method = "POST";
-                form.action = SCRIPT_URL + actionParam;
+                form.action = (baseUrl || SCRIPT_URL) + actionParam;
                 form.target = "hiddenFrame";
                 form.style.display = "none";
                 Object.keys(data).forEach(key => {
@@ -2961,7 +2962,7 @@
             const body = document.getElementById("csBody");
             body.innerHTML = '<tr><td colspan="19" class="no-data"><span class="spinner spinner-dark"></span> Loading...</td></tr>';
             try {
-                const result = await sheetFetch("action=getCustomerSupport");
+                const result = await sheetFetch("action=getCustomerSupport", CS_URL);
                 _customerSupportData = result.data || [];
                 renderCustomerSupport();
             } catch(err) {
