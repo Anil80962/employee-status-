@@ -366,10 +366,6 @@ function doGet(e) {
       }
     }
 
-    else {
-      result = { status: "success", message: "Fluxgen Operations API running." };
-    }
-
     else if (action === "getCustomerSupport") {
       var sheet = getCustomerSupportSheet_();
       if (!sheet) {
@@ -411,6 +407,10 @@ function doGet(e) {
         }
         result = { status: "success", data: rows };
       }
+    }
+
+    else {
+      result = { status: "success", message: "Fluxgen Operations API running." };
     }
 
   } catch (err) {
