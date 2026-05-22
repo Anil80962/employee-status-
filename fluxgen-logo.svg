@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 205 56" role="img" aria-label="Fluxgen">
+  <!-- Flux -->
+  <text x="4" y="44"
+    font-family="'Segoe UI',Helvetica,Arial,sans-serif"
+    font-size="44" font-weight="800" fill="#1c305e">Flux</text>
+
+  <!-- Circular arrow G — center (122,28), radius 20 -->
+  <!-- 270° clockwise arc from top (122,8) to left (102,28) -->
+  <path d="M122,8 A20,20,0,1,1,102,28"
+    fill="none" stroke="#36bce4" stroke-width="6" stroke-linecap="round"/>
+  <!-- Arrowhead at (102,28) in the clockwise (downward) direction -->
+  <polygon points="102,37 94,25 110,25" fill="#36bce4"/>
+
+  <!-- en -->
+  <text x="147" y="44"
+    font-family="'Segoe UI',Helvetica,Arial,sans-serif"
+    font-size="44" font-weight="800" fill="#1c305e">en</text>
+</svg>
