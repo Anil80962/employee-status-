@@ -51,9 +51,9 @@ function doGet(e) {
     if (action === "testAlert") {
       MailApp.sendEmail({
         to: LOW_STOCK_ALERT_EMAIL,
-        subject: "⚠️ Low Stock Alert: MCU ESP32 [TEST]",
+        subject: "[LOW STOCK] Low Stock Alert: MCU ESP32 [TEST]",
         htmlBody:
-          "<h3 style='color:#e74c3c;'>⚠️ Low Stock Alert — Sample</h3>" +
+          "<h3 style='color:#e74c3c;'>[LOW STOCK] Low Stock Alert -- Sample</h3>" +
           "<table style='border-collapse:collapse;font-family:sans-serif;font-size:14px;'>" +
           "<tr><td style='padding:6px 12px;font-weight:bold;'>Item</td><td style='padding:6px 12px;'>MCU ESP32</td></tr>" +
           "<tr><td style='padding:6px 12px;font-weight:bold;'>Category</td><td style='padding:6px 12px;'>ESP32</td></tr>" +
@@ -64,7 +64,7 @@ function doGet(e) {
           "<tr><td style='padding:6px 12px;font-weight:bold;'>Site</td><td style='padding:6px 12px;'>Fluxgen Office</td></tr>" +
           "<tr><td style='padding:6px 12px;font-weight:bold;'>Time</td><td style='padding:6px 12px;'>" + new Date().toLocaleString() + "</td></tr>" +
           "</table>" +
-          "<p style='color:#888;font-size:12px;margin-top:16px;'>This is a test alert. — Fluxgen Operations Portal</p>"
+          "<p style='color:#888;font-size:12px;margin-top:16px;'>This is a test alert. -- Fluxgen Operations Portal</p>"
       });
       result = { status: "success", message: "Test alert sent to " + LOW_STOCK_ALERT_EMAIL };
     }
@@ -402,7 +402,7 @@ function doGet(e) {
         // To Be Invoiced | Payment Received | Invoicing Dates |
         // Service Visit Dates | Remarks
         for (var i = 1; i < data.length; i++) {
-          // Skip blank rows — if both Client Name and PO # are empty
+          // Skip blank rows -- if both Client Name and PO # are empty
           if (!data[i][1] && !data[i][2]) continue;
           rows.push({
             clientName: fmtCell_(data[i][1]),
@@ -742,7 +742,7 @@ function doPost(e) {
         sheet = ss.insertSheet("SerialNumbers");
         sheet.appendRow(["SerialNo", "ItemID", "ItemName", "Status", "SiteName", "IssuedTo", "Date"]);
       }
-      // Upsert by SerialNo — adding the same serial twice updates the row.
+      // Upsert by SerialNo -- adding the same serial twice updates the row.
       var data = sheet.getDataRange().getValues();
       var targetSN = e.parameter.serialNo || "";
       var found = false;
@@ -896,20 +896,20 @@ function doPost(e) {
               try {
                 MailApp.sendEmail({
                   to: LOW_STOCK_ALERT_EMAIL,
-                  subject: "⚠️ Low Stock Alert: " + itemName,
+                  subject: "[LOW STOCK] Low Stock Alert: " + itemName,
                   htmlBody:
-                    "<h3 style='color:#e74c3c;'>⚠️ Low Stock Alert</h3>" +
+                    "<h3 style='color:#e74c3c;'>[LOW STOCK] Low Stock Alert</h3>" +
                     "<table style='border-collapse:collapse;font-family:sans-serif;font-size:14px;'>" +
                     "<tr><td style='padding:6px 12px;font-weight:bold;'>Item</td><td style='padding:6px 12px;'>" + itemName + "</td></tr>" +
                     "<tr><td style='padding:6px 12px;font-weight:bold;'>Category</td><td style='padding:6px 12px;'>" + category + "</td></tr>" +
                     "<tr style='background:#fff3cd;'><td style='padding:6px 12px;font-weight:bold;'>Current Qty</td><td style='padding:6px 12px;color:#e74c3c;font-weight:bold;'>" + newQty + " " + unit + "</td></tr>" +
                     "<tr><td style='padding:6px 12px;font-weight:bold;'>Min Stock</td><td style='padding:6px 12px;'>" + minStk + " " + unit + "</td></tr>" +
                     (location ? "<tr><td style='padding:6px 12px;font-weight:bold;'>Location</td><td style='padding:6px 12px;'>" + location + "</td></tr>" : "") +
-                    "<tr><td style='padding:6px 12px;font-weight:bold;'>Issued By</td><td style='padding:6px 12px;'>" + (e.parameter.empName || "—") + "</td></tr>" +
-                    "<tr><td style='padding:6px 12px;font-weight:bold;'>Site</td><td style='padding:6px 12px;'>" + (e.parameter.siteName || "—") + "</td></tr>" +
+                    "<tr><td style='padding:6px 12px;font-weight:bold;'>Issued By</td><td style='padding:6px 12px;'>" + (e.parameter.empName || "--") + "</td></tr>" +
+                    "<tr><td style='padding:6px 12px;font-weight:bold;'>Site</td><td style='padding:6px 12px;'>" + (e.parameter.siteName || "--") + "</td></tr>" +
                     "<tr><td style='padding:6px 12px;font-weight:bold;'>Time</td><td style='padding:6px 12px;'>" + new Date().toLocaleString() + "</td></tr>" +
                     "</table>" +
-                    "<p style='color:#888;font-size:12px;margin-top:16px;'>— Fluxgen Operations Portal</p>"
+                    "<p style='color:#888;font-size:12px;margin-top:16px;'>-- Fluxgen Operations Portal</p>"
                 });
               } catch(mailErr) { /* silently ignore if mail quota exceeded */ }
             }
@@ -954,7 +954,7 @@ function doPost(e) {
           break;
         }
       }
-      // Column A is S.No — keep existing value on update, auto-number on append
+      // Column A is S.No -- keep existing value on update, auto-number on append
       var serialNo;
       if (foundRowIdx >= 0) {
         serialNo = data[foundRowIdx][0];
