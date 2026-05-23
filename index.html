@@ -1436,7 +1436,7 @@
             document.getElementById("manageTab").style.display = isAdmin ? "inline-block" : "none";
             document.getElementById("usersTab").style.display = isSuperAdmin ? "inline-block" : "none";
             document.getElementById("inventoryTab").style.display = "inline-block";
-            document.getElementById("customerSupportTab").style.display = isSuperAdmin ? "inline-block" : "none";
+            document.getElementById("customerSupportTab").style.display = isAdmin ? "inline-block" : "none";
             // Hide admin-only inventory controls for non-admins
             const invAdminEls = document.querySelectorAll(".inv-admin-only");
             invAdminEls.forEach(el => {
