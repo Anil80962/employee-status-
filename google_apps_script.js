@@ -864,6 +864,36 @@ function doPost(e) {
             invSheet.getRange(i + 1, 4).setValue(newQty);
             invSheet.getRange(i + 1, 9).setValue(new Date().toLocaleString());
             invSheet.getRange(i + 1, 10).setValue(e.parameter.updatedBy || "");
+
+            // ── Low-stock email alert ──────────────────────────────────
+            var minStk = parseInt(data[i][4]) || 0;
+            if (isIssue && newQty <= minStk) {
+              var itemName = String(data[i][1]);
+              var category = String(data[i][2] || "");
+              var unit     = String(data[i][5] || "pcs");
+              var location = String(data[i][6] || "");
+              try {
+                MailApp.sendEmail({
+                  to: LOW_STOCK_ALERT_EMAIL,
+                  subject: "⚠️ Low Stock Alert: " + itemName,
+                  htmlBody:
+                    "<h3 style='color:#e74c3c;'>⚠️ Low Stock Alert</h3>" +
+                    "<table style='border-collapse:collapse;font-family:sans-serif;font-size:14px;'>" +
+                    "<tr><td style='padding:6px 12px;font-weight:bold;'>Item</td><td style='padding:6px 12px;'>" + itemName + "</td></tr>" +
+                    "<tr><td style='padding:6px 12px;font-weight:bold;'>Category</td><td style='padding:6px 12px;'>" + category + "</td></tr>" +
+                    "<tr style='background:#fff3cd;'><td style='padding:6px 12px;font-weight:bold;'>Current Qty</td><td style='padding:6px 12px;color:#e74c3c;font-weight:bold;'>" + newQty + " " + unit + "</td></tr>" +
+                    "<tr><td style='padding:6px 12px;font-weight:bold;'>Min Stock</td><td style='padding:6px 12px;'>" + minStk + " " + unit + "</td></tr>" +
+                    (location ? "<tr><td style='padding:6px 12px;font-weight:bold;'>Location</td><td style='padding:6px 12px;'>" + location + "</td></tr>" : "") +
+                    "<tr><td style='padding:6px 12px;font-weight:bold;'>Issued By</td><td style='padding:6px 12px;'>" + (e.parameter.empName || "—") + "</td></tr>" +
+                    "<tr><td style='padding:6px 12px;font-weight:bold;'>Site</td><td style='padding:6px 12px;'>" + (e.parameter.siteName || "—") + "</td></tr>" +
+                    "<tr><td style='padding:6px 12px;font-weight:bold;'>Time</td><td style='padding:6px 12px;'>" + new Date().toLocaleString() + "</td></tr>" +
+                    "</table>" +
+                    "<p style='color:#888;font-size:12px;margin-top:16px;'>— Fluxgen Operations Portal</p>"
+                });
+              } catch(mailErr) { /* silently ignore if mail quota exceeded */ }
+            }
+            // ─────────────────────────────────────────────────────────
+
             break;
           }
         }
@@ -955,6 +985,9 @@ function doPost(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 }
+
+// === Inventory alert config =============================================
+var LOW_STOCK_ALERT_EMAIL = "anil@fluxgentech.com";
 
 // === Customer Support helpers ============================================
 //
