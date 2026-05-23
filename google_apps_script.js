@@ -48,7 +48,28 @@ function doGet(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
 
-    if (action === "getUsers") {
+    if (action === "testAlert") {
+      MailApp.sendEmail({
+        to: LOW_STOCK_ALERT_EMAIL,
+        subject: "⚠️ Low Stock Alert: MCU ESP32 [TEST]",
+        htmlBody:
+          "<h3 style='color:#e74c3c;'>⚠️ Low Stock Alert — Sample</h3>" +
+          "<table style='border-collapse:collapse;font-family:sans-serif;font-size:14px;'>" +
+          "<tr><td style='padding:6px 12px;font-weight:bold;'>Item</td><td style='padding:6px 12px;'>MCU ESP32</td></tr>" +
+          "<tr><td style='padding:6px 12px;font-weight:bold;'>Category</td><td style='padding:6px 12px;'>ESP32</td></tr>" +
+          "<tr style='background:#fff3cd;'><td style='padding:6px 12px;font-weight:bold;'>Current Qty</td><td style='padding:6px 12px;color:#e74c3c;font-weight:bold;'>3 NOS</td></tr>" +
+          "<tr><td style='padding:6px 12px;font-weight:bold;'>Min Stock</td><td style='padding:6px 12px;'>10 NOS</td></tr>" +
+          "<tr><td style='padding:6px 12px;font-weight:bold;'>Location</td><td style='padding:6px 12px;'>BTM</td></tr>" +
+          "<tr><td style='padding:6px 12px;font-weight:bold;'>Issued By</td><td style='padding:6px 12px;'>Anil</td></tr>" +
+          "<tr><td style='padding:6px 12px;font-weight:bold;'>Site</td><td style='padding:6px 12px;'>Fluxgen Office</td></tr>" +
+          "<tr><td style='padding:6px 12px;font-weight:bold;'>Time</td><td style='padding:6px 12px;'>" + new Date().toLocaleString() + "</td></tr>" +
+          "</table>" +
+          "<p style='color:#888;font-size:12px;margin-top:16px;'>This is a test alert. — Fluxgen Operations Portal</p>"
+      });
+      result = { status: "success", message: "Test alert sent to " + LOW_STOCK_ALERT_EMAIL };
+    }
+
+    else if (action === "getUsers") {
       var sheet = ss.getSheetByName("Users");
       if (!sheet) {
         result = { status: "success", users: {} };
