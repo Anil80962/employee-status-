@@ -1862,15 +1862,23 @@
             assignedEmployeeIds = new Set();
             window._assignmentInfo = {};
             if (!date) { renderEmployees(); return; }
-            try {
-                const result = await sheetFetch("action=getStatus&date=" + encodeURIComponent(date));
-                if (result && result.data) {
-                    result.data.forEach(row => {
-                        assignedEmployeeIds.add(row.empId);
-                        window._assignmentInfo[row.empId] = { siteName: row.siteName, status: row.status, workType: row.workType, scopeOfWork: row.scopeOfWork || "" };
-                    });
-                }
-            } catch(e) { /* silently fail */ }
+            // Retry up to 3 times — the first request after page load can fail
+            // (Apps Script cold-start / fetch->JSONP redirect) which previously
+            // left the cards blank until the user manually changed the date.
+            let result = null;
+            for (let attempt = 0; attempt < 3; attempt++) {
+                try {
+                    result = await sheetFetch("action=getStatus&date=" + encodeURIComponent(date));
+                    if (result && result.data) break;
+                } catch(e) { /* will retry */ }
+                await new Promise(r => setTimeout(r, 800));
+            }
+            if (result && result.data) {
+                result.data.forEach(row => {
+                    assignedEmployeeIds.add(row.empId);
+                    window._assignmentInfo[row.empId] = { siteName: row.siteName, status: row.status, workType: row.workType, scopeOfWork: row.scopeOfWork || "" };
+                });
+            }
             renderEmployees();
         }
 
@@ -2063,14 +2071,15 @@
                     if (!weekData[r.empName]) weekData[r.empName] = {};
                     if (r.date && dates.includes(r.date)) {
                         const st = r.status || "";
+                        const scope = r.scopeOfWork || "";
                         if (st === "On Leave" || st === "Holiday" || st === "Weekend") {
-                            weekData[r.empName][r.date] = { label: st, type: "leave" };
+                            weekData[r.empName][r.date] = { label: st, type: "leave", scope: "" };
                         } else if (st === "Work From Home") {
-                            weekData[r.empName][r.date] = { label: "WFH", type: "wfh" };
+                            weekData[r.empName][r.date] = { label: "WFH", type: "wfh", scope: scope };
                         } else if (st === "In Office") {
-                            weekData[r.empName][r.date] = { label: r.siteName || "In Office", type: "office" };
+                            weekData[r.empName][r.date] = { label: r.siteName || "In Office", type: "office", scope: scope };
                         } else {
-                            weekData[r.empName][r.date] = { label: r.siteName || "-", type: "site" };
+                            weekData[r.empName][r.date] = { label: r.siteName || "-", type: "site", scope: scope };
                         }
                     }
                 });
@@ -2086,9 +2095,10 @@
                         const entry = (weekData[name] && weekData[name][date]) || null;
                         const dayOfWeek = new Date(date).getDay(); // 0=Sun,6=Sat
                         const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-                        let bg = "", color = "", label = "-";
+                        let bg = "", color = "", label = "-", scope = "";
                         if (entry) {
                             label = entry.label;
+                            scope = entry.scope || "";
                             if      (entry.type === "leave")  { bg = "#fce4ec"; color = "#c0392b"; }
                             else if (entry.type === "wfh")    { bg = "#e8f5e9"; color = "#27ae60"; }
                             else if (entry.type === "office") { bg = "#e3f2fd"; color = "#1565c0"; }
@@ -2097,7 +2107,8 @@
                             label = "Weekend"; bg = "#f3e5f5"; color = "#7b1fa2";
                         }
                         const style = (entry || isWeekend) ? `background:${bg};color:${color};font-weight:600;` : "color:#ccc;";
-                        return '<td style="text-align:center;font-size:12px;padding:10px 6px;' + style + '">' + label + '</td>';
+                        const scopeHtml = scope ? '<div style="font-size:10px;font-weight:400;color:#5a6b7a;margin-top:3px;line-height:1.3;white-space:normal;word-wrap:break-word;">' + _csEscape(scope) + '</div>' : '';
+                        return '<td style="text-align:center;font-size:12px;padding:10px 6px;vertical-align:top;' + style + '">' + label + scopeHtml + '</td>';
                     }).join("");
                     return '<tr><td style="font-weight:600;position:sticky;left:0;background:#fff;z-index:1;white-space:nowrap;">' + name + '</td>' + cells + '</tr>';
                 }).join("");
